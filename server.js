@@ -57,6 +57,8 @@ const MAX_ROOM_HISTORY = 100;
 // Socket.IO обработчики
 io.on("connection", (socket)=> {
   console.log(`[${new Date().toISOString()}] 🟢 Socket.IO подключен: ${socket.id}`);
+  console.log(`[${socket.id}] 🔧 Транспорт:`, socket.conn.transport.name);
+  console.log(`[${socket.id}] 🌐 IP адрес:`, socket.handshake.address);
 
   socket.on("join-room", (roomId, userId, userName) => {
     console.log(`[${new Date().toISOString()}] 📥 Получен join-room:`, { roomId, userId, userName });
@@ -193,6 +195,14 @@ io.on("connection", (socket)=> {
 
   socket.on("error", (error) => {
     console.error("❌ Socket.IO error:", error);
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log(`[${socket.id}] 🔌 Socket.IO отключен:`, reason);
+  });
+
+  socket.on("reconnect", (attemptNumber) => {
+    console.log(`[${socket.id}] 🔄 Socket.IO переподключен после ${attemptNumber} попыток`);
   });
 });
 

@@ -40,9 +40,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   console.log('🌐 Проверяем доступность сервера...');
+  console.log('🌐 URL сервера:', window.location.origin);
   
   // Проверяем доступность сервера перед инициализацией
   fetch(window.location.origin + '/healthz')
+    .then(response => {
+      console.log('📡 Ответ от /healthz:', response.status, response.statusText);
+      return response.text();
+    })
+    .then(text => {
+      console.log('📝 Тело ответа /healthz:', text);
+    })
     .then(response => {
       if (response.ok) {
         console.log('✅ Сервер доступен, продолжаем инициализацию');
@@ -82,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log('🔗 Инициализация Socket.IO с сервером:', window.location.origin);
   
   socket = io(window.location.origin, {
-    transports: ["websocket", "polling"],
+    transports: ["polling"], // Принудительно используем polling для совместимости с Render.com
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
