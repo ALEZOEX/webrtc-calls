@@ -214,8 +214,22 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   socket.on("whiteboardClear", () => {
-    if (context) {
+    if (context && canvas) {
       context.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  });
+
+  socket.on("whiteboardOpen", () => {
+    if (!whiteboardOpened) {
+      console.log("📢 Другой участник открыл доску");
+      toggleWhiteboard();
+    }
+  });
+
+  socket.on("whiteboardClose", () => {
+    if (whiteboardOpened) {
+      console.log("📢 Другой участник закрыл доску");
+      toggleWhiteboard();
     }
   });
 });

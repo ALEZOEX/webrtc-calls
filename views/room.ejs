@@ -4,14 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Video Conference</title>
-  <link rel="stylesheet" href="/style.css?v=3.2" />
+  <link rel="stylesheet" href="/style.css?v=3.4" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
 <body>
   <header class="header">
     <div class="logo">
       <h3>🎥 Video Conference</h3>
-   </div>
+    </div>
     <div class="room-info">
       <i class="fas fa-door-open"></i>
       <span>Room:</span>
@@ -72,53 +72,39 @@
     </section>
   </main>
 
-<!-- Скрипты -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
   
   <script>
-  const ROOM_ID = "<%= roomId %>";
+    const ROOM_ID = "<%= roomId %>";
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isProduction = window.location.hostname !== 'localhost';
 
-  //STUN + TURN (OpenRelay — бесплатный публичный, на практике норм)
-  // Используем локальный PeerJS сервер для лучшей надежности
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const PEER_CONFIG = {
+      host: isProduction ? window.location.hostname : '0.peerjs.com',
+      port: isProduction ? (window.location.port ? parseInt(window.location.port) : 443) : 443,
+      path: isProduction ? '/peerjs' : '/',
+      secure: isProduction,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun.services.mozilla.com' },
+          { urls: 'stun:stun.stunprotocol.org:3478' },
+          { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+        ],
+        sdpSemantics: 'unified-plan',
+        iceTransportPolicy: 'all',
+        bundlePolicy: 'max-bundle'
+      }
+    };
+    
+    console.log('🔧 Room ID:', ROOM_ID);
+    console.log('🔧 PeerJS Config:', PEER_CONFIG);
+  </script>
   
-  const PEER_CONFIG = {
-    host: window.location.hostname,
-    port: window.location.port? parseInt(window.location.port) : (window.location.protocol === 'https:' ? 443 : 80),
-    path: '/peerjs',
-    secure: window.location.protocol === 'https:',
-    config: {
-      iceServers: [
-        // Бесплатные STUN серверы
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-
-        // TURN серверы для обхода NAT
-        { urls: 'turn:openrelay.metered.ca:80',   username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:443',  username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:3478', username: 'openrelayproject', credential: 'openrelayproject' }
-      ],
-      sdpSemantics: 'unified-plan',
-      iceTransportPolicy: isMobile ? 'all' : 'all', // Для мобильных пробуем все варианты
-      bundlePolicy: 'max-bundle',
-      rtcpMuxPolicy: 'require'
-    }
-  };
-
-  if (isMobile) {
-    console.log('📱 Мобильное устройство - используем оптимизированные настройки WebRTC');
-  }
-
-  console.log('🔧 Room ID:', ROOM_ID);
-  console.log('🔧 PeerJS Config:', PEER_CONFIG);
-</script>
-  
-  <script src="/script.js?v=3.2"></script>
-<script src="/whiteboard.js?v=3.2"></script>
+  <script src="/script.js?v=3.4"></script>
+  <script src="/whiteboard.js?v=3.4"></script>
 </body>
 </html>
