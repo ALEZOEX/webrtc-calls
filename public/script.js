@@ -46,12 +46,6 @@ document.addEventListener("DOMContentLoaded", () => {
   fetch(window.location.origin + '/healthz')
     .then(response => {
       console.log('📡 Ответ от /healthz:', response.status, response.statusText);
-      return response.text();
-    })
-    .then(text => {
-      console.log('📝 Тело ответа /healthz:', text);
-    })
-    .then(response => {
       if (response.ok) {
         console.log('✅ Сервер доступен, продолжаем инициализацию');
         initializeApp();
