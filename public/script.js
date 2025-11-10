@@ -129,6 +129,7 @@ transports: ["websocket", "polling"],
   peer.on("open", (id) => {
     log("PeerJS подключен: " + id);
     participants[id] = userName;
+    console.log("Отправляем join-room: ", ROOM_ID, id, userName);
     socket.emit("join-room", ROOM_ID, id, userName);
     initLocalStream(); // а камеру получаем отдельно
   });
@@ -238,6 +239,7 @@ transports: ["websocket", "polling"],
   }
 
   function connectToNewUser(userId, stream, connectedUserName) {
+    console.log("Вызываем пользователя: ", userId, connectedUserName);
     if (!userId || !stream || !peer || peer.disconnected) return;
 
     try {
@@ -253,6 +255,7 @@ transports: ["websocket", "polling"],
       const video = createVideoElement();
 
       call.on("stream", (userVideoStream) => {
+        console.log("Получен стрим от пользователя: ", userId);
         addVideoStream(video, userVideoStream, false, connectedUserName, userId);
       });
 
@@ -317,6 +320,7 @@ transports: ["websocket", "polling"],
   }
 
   function handleIncomingCall(call) {
+    console.log("Получен входящий вызов от: ", call.peer);
     if (call.metadata && call.metadata.type === "screen-share") {
       call.answer();
       const remoteVideo = createVideoElement();
@@ -336,6 +340,7 @@ transports: ["websocket", "polling"],
     addVideoStream(remoteVideo, null, false, participants[call.peer] || "Участник", call.peer, { unmuteOverlay: true });
 
     call.on("stream", (remoteStream) => {
+      console.log("Получен стрим во входящем вызове от: ", call.peer);
       addVideoStream(remoteVideo, remoteStream, false, participants[call.peer] || "Участник", call.peer, { unmuteOverlay: true });
     });
 
@@ -464,8 +469,24 @@ transports: ["websocket", "polling"],
     });
   }
 
+  // Новый участник получил список тех, кто уже в комнате → сам инициирует звонки
+  socket.on("room-users", (users) => {
+    // users: [{ userId, userName }]
+    console.log("Получен список участников комнаты: ", users);
+    users.forEach(({ userId, userName: uName }) => {
+      console.log("Добавляем существующего пользователя: ", userId, uName);
+      participants[userId] = uName || "Участник";
+      if (myVideoStream) {
+        setTimeout(() => connectToNewUser(userId, myVideoStream, participants[userId]), 300);
+      } else {
+        pendingToConnect.add(userId);
+      }
+    });
+  });
+
   // 2) Если пришёл новый пользователь, а стрима ещё нет — отложим подключение
   socket.on("user-connected", (userId, connectedUserName) => {
+    console.log("Получено user-connected: ", userId, connectedUserName);
     log(`Пользователь ${connectedUserName} подключился`);
     participants[userId] = connectedUserName;
 

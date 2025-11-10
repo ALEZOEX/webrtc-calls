@@ -78,7 +78,16 @@ io.on("connection", (socket) => {
       console.log(`🆕 Создана комната: ${roomId}`);
     }
 
-    const room = rooms.get(roomId);
+    // 1) СПИСОК УЖЕ НАХОДЯЩИХСЯ В КОМНАТЕ (до добавления текущего)
+    const existingUsers = [];
+    for (const [uid, info] of room.users.entries()) {
+      if (uid !== userId) existingUsers.push({ userId: uid, userName: info.userName });
+    }
+
+    // 2) Отправляем НОВОМУ участнику список уже присутствующих
+    socket.emit("room-users", existingUsers);
+
+    // 3) Регистрируем нового участника
     room.users.set(userId, { 
       socketId: socket.id, 
       userName,
