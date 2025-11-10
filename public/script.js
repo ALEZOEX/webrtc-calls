@@ -28,8 +28,21 @@ function log(message, type = 'info') {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Проверка поддержки WebRTC
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Ваш браузер не поддерживает WebRTC. Пожалуйста, используйте современный браузер.');
+    return;
+  }
+
+  if (!window.Peer) {
+    alert('PeerJS не загружен. Проверьте подключение к интернету.');
+    return;
+  }
+
+  console.log('🔗 Инициализация Socket.IO с сервером:', window.location.origin);
+  
   socket = io(window.location.origin, {
-transports: ["websocket", "polling"],
+    transports: ["websocket", "polling"],
     reconnection: true
   });
 
@@ -37,6 +50,11 @@ transports: ["websocket", "polling"],
   const myVideo = document.createElement("video");
   myVideo.muted = true;
   myVideo.playsInline = true;
+
+  console.log('📹 Инициализация видео:', {
+    videoGrid: !!videoGrid,
+    myVideo: !!myVideo
+  });
 
   const chatSection = document.querySelector(".main__right");
   const toggleChat = document.getElementById("toggleChat");
@@ -61,16 +79,26 @@ transports: ["websocket", "polling"],
   const chatInput = document.getElementById("chat_message");
   const messagesContainer = document.querySelector(".messages");
 
+  console.log('💬 Инициализация чата:', {
+    sendButton: !!sendButton,
+    chatInput: !!chatInput,
+    messagesContainer: !!messagesContainer
+  });
+
   function sendMessage() {
     const messageText = chatInput.value.trim();
     if (!messageText) return;
     
+    console.log('💬 Отправляем сообщение:', { sender: userName, text: messageText });
     socket.emit("message", { sender: userName, text: messageText });
     chatInput.value = "";
   }
 
   if (sendButton) {
-    sendButton.addEventListener("click", sendMessage);
+    sendButton.addEventListener("click", () => {
+      console.log("chat send clicked; socket.connected=", socket.connected);
+      sendMessage();
+    });
   }
 
   if (chatInput) {
@@ -83,24 +111,34 @@ transports: ["websocket", "polling"],
   }
 
   socket.on("messageHistory", (history) => {
-    if (!messagesContainer) return;
+    console.log('💬 Получена история сообщений:', history.length, 'сообщений');
+    if (!messagesContainer) {
+      console.log('❌ Контейнер сообщений не найден');
+      return;
+    }
     messagesContainer.innerHTML = "";
     history.forEach((message) => {
       addMessageToChat(message);
     });
   });
 
-  socket.on("createMessage", (message) => {
-    addMessageToChat(message);
+  socket.on("createMessage", (msg) => {
+    console.log('💬 Получено новое сообщение:', msg);
+    addMessageToChat(msg);
   });
 
   function addMessageToChat(message) {
-    if (!messagesContainer) return;
+    if (!messagesContainer) {
+      console.log('❌ Не удается добавить сообщение: контейнер не найден');
+      return;
+    }
+    console.log('💬 Добавляем сообщение в чат:', message);
     const messageDiv = document.createElement("div");
     messageDiv.classList.add("message");
     messageDiv.innerHTML = `<strong>${message.sender}:</strong> ${message.text}`;
     messagesContainer.appendChild(messageDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    console.log('✅ Сообщение добавлено в чат');
   }
 
   document.querySelectorAll(".emoji-button").forEach(button => {
@@ -114,6 +152,8 @@ transports: ["websocket", "polling"],
   // PEERJS ИНИЦИАЛИЗАЦИЯ
   // ========================================
 
+  console.log('🔧 PeerJS конфигурация:', PEER_CONFIG);
+  
   peer = new Peer(undefined, {
     host: PEER_CONFIG.host,
     port: PEER_CONFIG.port,
@@ -123,15 +163,56 @@ transports: ["websocket", "polling"],
     debug: 2
   });
 
-  // регистрируем входящие вызовы СРАЗУ, до запроса камеры
+  // ВАЖНО: ловим входящие до getUserMedia
   peer.on("call", handleIncomingCall);
+
+  // Двухфлажковая синхронизация
+  let socketReady = false;
+  let peerReady = false;
+  let joined = false;
+
+  function tryJoin() {
+    if (!joined && socketReady && peerReady) {
+      joined = true;
+      console.log("🚀 Отправляем join-room:", { roomId: ROOM_ID, peerId: peer.id, userName });
+      socket.emit("join-room", ROOM_ID, peer.id, userName);
+      initLocalStream(); // камеру запрашиваем после входа
+    } else {
+      console.log('⏳ Ожидание готовности:', { socketReady, peerReady, joined });
+    }
+  }
+
+  socket.on('connect', () => {
+    console.log('✅ Socket.IO подключен');
+    socketReady = true;
+    tryJoin();
+  });
+
+  socket.on('connect_error', (error) => {
+    console.error('❌ Socket.IO ошибка подключения:', error);
+    log('Ошибка подключения к серверу', 'error');
+  });
+
+  socket.on('disconnect', (reason) => {
+    console.log('🔌 Socket.IO отключен:', reason);
+    log('Соединение потеряно: ' + reason, 'warn');
+  });
 
   peer.on("open", (id) => {
     log("PeerJS подключен: " + id);
     participants[id] = userName;
-    console.log("Отправляем join-room: ", ROOM_ID, id, userName);
-    socket.emit("join-room", ROOM_ID, id, userName);
-    initLocalStream(); // а камеру получаем отдельно
+    peerReady = true;
+    tryJoin();
+  });
+
+  peer.on("error", (error) => {
+    console.error("❌ PeerJS ошибка:", error);
+    log("Ошибка PeerJS: " + error.type, 'error');
+  });
+
+  peer.on("disconnected", () => {
+    console.log("🔌 PeerJS отключен");
+    log("PeerJS соединение потеряно", 'warn');
   });
 
   function toggleFullscreen(element) {
@@ -143,7 +224,7 @@ transports: ["websocket", "polling"],
       document.exitFullscreen();
     }
   }
-
+    
   function removeVideoContainerByPeerId(peerId) {
     const container = document.querySelector(`.video-container[data-peer-id="${peerId}"]`);
     if (container) container.remove();
@@ -285,6 +366,20 @@ transports: ["websocket", "polling"],
       });
 
       myVideoStream = stream;
+
+      // выключаем видео по умолчанию
+      const v = stream.getVideoTracks()[0];
+      if (v) {
+        v.enabled = false;
+        console.log('📹 Видео выключено по умолчанию');
+      }
+      
+      const iconV = document.querySelector("#stopVideo i");
+      if (iconV) {
+        iconV.className = "fa fa-video-slash";
+        console.log('🔴 Иконка видео обновлена на "выключено"');
+      }
+
       addVideoStream(myVideo, stream, true, userName + " (Вы)");
 
       // обработка входящих звонков
@@ -472,29 +567,43 @@ transports: ["websocket", "polling"],
   // Новый участник получил список тех, кто уже в комнате → сам инициирует звонки
   socket.on("room-users", (users) => {
     // users: [{ userId, userName }]
-    console.log("Получен список участников комнаты: ", users);
+    console.log('👥 Получен список участников комнаты:', users.length, 'пользователей');
     users.forEach(({ userId, userName: uName }) => {
-      console.log("Добавляем существующего пользователя: ", userId, uName);
+      console.log('👤 Добавляем существующего пользователя:', userId, uName);
       participants[userId] = uName || "Участник";
       if (myVideoStream) {
+        console.log('📞 Подключаемся к пользователю:', userId);
         setTimeout(() => connectToNewUser(userId, myVideoStream, participants[userId]), 300);
       } else {
+        console.log('⏳ Откладываем подключение к:', userId, '(нет видео стрима)');
         pendingToConnect.add(userId);
       }
     });
   });
 
+  // (опционально) Актуальный список участников для рисования UI
+  socket.on("user-list", (list) => {
+    // list: [{ userId, userName }]
+    // можно нарисовать боковую панель участников
+    console.log("user-list:", list);
+  });
+
   // 2) Если пришёл новый пользователь, а стрима ещё нет — отложим подключение
   socket.on("user-connected", (userId, connectedUserName) => {
-    console.log("Получено user-connected: ", userId, connectedUserName);
+    console.log('🆕 Получено user-connected:', userId, connectedUserName);
     log(`Пользователь ${connectedUserName} подключился`);
     participants[userId] = connectedUserName;
 
-    if (userId === peer.id) return;
+    if (userId === peer.id) {
+      console.log('ℹ️ Пропускаем подключение к себе');
+      return;
+    }
 
     if (myVideoStream) {
+      console.log('📞 Подключаемся к новому пользователю:', userId);
       setTimeout(() => connectToNewUser(userId, myVideoStream, connectedUserName), 500);
     } else {
+      console.log('⏳ Откладываем подключение к новому пользователю:', userId);
       pendingToConnect.add(userId);
     }
   });
@@ -513,9 +622,7 @@ transports: ["websocket", "polling"],
     removeVideoContainerByPeerId(initiatorPeerId + "-screen");
   });
 
-  peer.on("error", (err) => {
-    console.error("PeerJS ошибка:", err);
-  });
+
 
   window.addEventListener("beforeunload", () => {
     if (myVideoStream) {

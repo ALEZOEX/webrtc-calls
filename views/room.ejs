@@ -80,6 +80,7 @@
   const ROOM_ID = "<%= roomId %>";
 
   // STUN + TURN (OpenRelay — бесплатный публичный, на практике норм)
+  // Используем публичный PeerJS сервер для лучшей совместимости
   const PEER_CONFIG = {
     host: '0.peerjs.com',
     port: 443,
