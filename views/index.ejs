@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎥 WebRTC Calls - Добро пожаловать</title>
+  <link rel="stylesheet" href="/style.css?v=3.0">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📹</text></svg>">
+</head>
+<body>
+  <div class="index-container">
+    <header class="index-header">
+      <h1>📹 WebRTC Calls</h1>
+      <p>Видеоконференции нового поколения</p>
+    </header>
+    
+    <div class="index-actions">
+      <button id="joinBtn" class="btn">
+        <i class="fas fa-sign-in-alt"></i> Присоединиться
+      </button>
+      <button id="createBtn" class="btn">
+        <i class="fas fa-plus-circle"></i> Создать комнату
+      </button>
+    </div>
+    
+    <div id="joinFormContainer" class="form-card" style="display: none;">
+      <h2>🚪 Войти в комнату</h2>
+      <form id="joinForm">
+        <div class="form-group">
+          <label for="joinUserName">Ваше имя</label>
+          <input type="text" id="joinUserName" placeholder="Например: Иван" required>
+        </div>
+        <div class="form-group">
+          <label for="joinRoomId">ID комнаты</label>
+          <input type="text" id="joinRoomId" placeholder="Введите ID комнаты" required>
+        </div>
+        <button type="submit" class="btn" style="width: 100%;">
+          Присоединиться <i class="fas fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+    
+    <div id="createFormContainer" class="form-card" style="display: none;">
+      <h2>✨ Новая комната</h2>
+      <form id="createForm">
+        <div class="form-group">
+          <label for="createUserName">Ваше имя</label>
+          <input type="text" id="createUserName" placeholder="Например: Мария" required>
+        </div>
+        <button type="submit" class="btn" style="width: 100%;">
+          Создать комнату <i class="fas fa-rocket"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Анимация форм
+    document.getElementById('joinBtn').addEventListener('click', () => {
+      document.getElementById('joinFormContainer').style.display = 'block';
+      document.getElementById('createFormContainer').style.display = 'none';
+    });
+
+    document.getElementById('createBtn').addEventListener('click', () => {
+      document.getElementById('createFormContainer').style.display = 'block';
+      document.getElementById('joinFormContainer').style.display = 'none';
+    });
+
+    // Присоединение к комнате
+    document.getElementById('joinForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      const userName = document.getElementById('joinUserName').value.trim();
+      const roomId = document.getElementById('joinRoomId').value.trim();
+      if (userName && roomId) {
+        window.location.href = `/room/${roomId}?userName=${encodeURIComponent(userName)}`;
+      }
+    });
+
+    // Создание комнаты
+    document.getElementById('createForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      const userName = document.getElementById('createUserName').value.trim();
+      if (userName) {
+        const roomId = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+          (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+        window.location.href = `/room/${roomId}?userName=${encodeURIComponent(userName)}`;
+      }
+    });
+  </script>
+</body>
+</html>

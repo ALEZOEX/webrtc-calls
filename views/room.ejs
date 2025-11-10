@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎥 WebRTC Calls - Room <%= roomId.substring(0, 8) %></title>
+  <link rel="stylesheet" href="/style.css?v=3.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📹</text></svg>">
+</head>
+<body>
+  <header class="header">
+    <div class="logo">
+      <h3>📹 WebRTC Calls</h3>
+    </div>
+    <div class="room-info">
+      <i class="fas fa-door-open"></i>
+      <span>Комната:</span>
+      <code><%= roomId.substring(0, 8) %>...</code>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="main__left">
+      <div id="video-grid" class="video-grid"></div>
+      
+      <div class="control-panel">
+        <button id="stopVideo" class="control-button" title="Камера">
+          <i class="fas fa-video-slash"></i>
+        </button>
+        <button id="muteButton" class="control-button" title="Микрофон">
+          <i class="fas fa-microphone"></i>
+        </button>
+        <button id="screenShareButton" class="control-button" title="Демонстрация экрана">
+          <i class="fas fa-desktop"></i>
+        </button>
+        <button id="whiteboardButton" class="control-button" title="Интерактивная доска">
+          <i class="fas fa-chalkboard"></i>
+        </button>
+        <button id="inviteButton" class="control-button" title="Пригласить">
+          <i class="fas fa-user-plus"></i>
+        </button>
+        <button id="toggleChat" class="control-button" title="Чат">
+          <i class="fas fa-comments"></i>
+        </button>
+        <button id="conference-settings-btn" class="control-button" title="Настройки">
+          <i class="fas fa-cog"></i>
+        </button>
+        <button id="exit-conference-btn" class="control-button danger" title="Покинуть конференцию">
+          <i class="fas fa-phone-slash"></i>
+        </button>
+      </div>
+    </section>
+
+    <section class="main__right" id="chat-panel">
+      <div class="chat-panel">
+        <h3>💬 Чат конференции</h3>
+        <div class="messages"></div>
+        <div class="chat-input-container">
+          <input id="chat_message" type="text" placeholder="Напишите сообщение..." autocomplete="off" />
+          <button id="send" class="chat-send-button" title="Отправить">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+        <div class="emoji-buttons">
+          <button class="emoji-button" data-emoji="❤️" title="Сердце">❤️</button>
+          <button class="emoji-button" data-emoji="👍" title="Лайк">👍</button>
+          <button class="emoji-button" data-emoji="👎" title="Дизлайк">👎</button>
+          <button class="emoji-button" data-emoji="😂" title="Смех">😂</button>
+          <button class="emoji-button" data-emoji="😱" title="Удивление">😱</button>
+          <button class="emoji-button" data-emoji="😎" title="Крутой">😎</button>
+          <button class="emoji-button" data-emoji="🎉" title="Праздник">🎉</button>
+          <button class="emoji-button" data-emoji="🤔" title="Думаю">🤔</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Скрипты -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+  
+  <script>
+    const ROOM_ID = "<%= roomId %>";
+    const PEER_CONFIG = <%- JSON.stringify(peerConfig) %>;
+  </script>
+  
+  <script src="/script.js?v=3.0"></script>
+  <script src="/whiteboard.js?v=3.0"></script>
+</body>
+</html>
