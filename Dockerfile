@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем зависимости
-RUN npm install --production
+RUN npm install --production --legacy-peer-deps
 
 # Копируем все файлы проекта
 COPY . .
