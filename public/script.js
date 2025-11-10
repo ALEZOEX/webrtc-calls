@@ -21,10 +21,35 @@ if (!userName || userName.trim() === "") {
   userName = prompt("Введите ваш никнейм:") || "Аноним";
 }
 
+// Система уровней логирования
+const LOG_LEVELS = {
+  ERROR: 0,
+  WARN: 1, 
+  INFO: 2,
+  DEBUG: 3
+};
+
+let currentLogLevel = LOG_LEVELS.INFO; // Можно изменить на DEBUG для отладки
+
 function log(message, type = 'info') {
   const timestamp = new Date().toLocaleTimeString();
   const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : 'ℹ️';
   console.log(`[${timestamp}] ${prefix}`, message);
+  
+  const level = type === 'error' ? LOG_LEVELS.ERROR : 
+                type === 'warn' ? LOG_LEVELS.WARN : 
+                LOG_LEVELS.INFO;
+  
+  if (level <= currentLogLevel) {
+    console.log(`[${timestamp}] ${prefix}`, message);
+  }
+}
+
+// Функция для отладочных логов (только для разработки)
+function debug(message) {
+  if (currentLogLevel >= LOG_LEVELS.DEBUG) {
+    console.log(`[${new Date().toLocaleTimeString()}] 🔍`, message);
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -37,6 +62,18 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!window.Peer) {
     alert('PeerJS не загружен. Проверьте подключение к интернету.');
     return;
+  }
+
+  // Дополнительные проверки для мобильных устройств
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    console.log('📱 Мобильное устройство обнаружено, применяем специальные настройки');
+    
+    // Для мобильных устройств используем более простые настройки
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      console.warn('⚠️ Мобильные браузеры требуют HTTPS для WebRTC');
+    }
   }
 
   console.log('🌐 Проверяем доступность сервера...');
@@ -81,8 +118,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function initializeApp() {
 
-  console.log('🔗 Инициализация Socket.IO с сервером:', window.location.origin);
-  
   socket = io(window.location.origin, {
     transports: ["polling"], // Принудительно используем polling для совместимости с Render.com
     reconnection: true,
@@ -96,10 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
   myVideo.muted = true;
   myVideo.playsInline = true;
 
-  console.log('📹 Инициализация видео:', {
-    videoGrid: !!videoGrid,
-    myVideo: !!myVideo
-  });
+
 
   const chatSection = document.querySelector(".main__right");
   const toggleChat = document.getElementById("toggleChat");
@@ -124,11 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const chatInput = document.getElementById("chat_message");
   const messagesContainer = document.querySelector(".messages");
 
-  console.log('💬 Инициализация чата:', {
-    sendButton: !!sendButton,
-    chatInput: !!chatInput,
-    messagesContainer: !!messagesContainer
-  });
+
 
   function sendMessage() {
     const messageText = chatInput.value.trim();
@@ -197,8 +225,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // PEERJS ИНИЦИАЛИЗАЦИЯ
   // ========================================
 
-  console.log('🔧 PeerJS конфигурация:', PEER_CONFIG);
-  
   peer = new Peer(undefined, {
     host: PEER_CONFIG.host,
     port: PEER_CONFIG.port,
@@ -301,7 +327,28 @@ document.addEventListener("DOMContentLoaded", () => {
   function addVideoStream(video, stream, isLocal = false, displayName = "", peerId = null, options = {}) {
     const { unmuteOverlay = false } = options;
     const videoGrid = document.getElementById("video-grid");
-    if (!videoGrid) return;
+    
+    console.log('🔍 Проверка videoGrid:', {
+      videoGrid: !!videoGrid,
+      videoGridId: videoGrid ? videoGrid.id : 'null',
+      videoGridChildren: videoGrid ? videoGrid.children.length : 0
+    });
+    
+    if (!videoGrid) {
+      console.error('❌ videoGrid не найден в DOM!');
+      console.log('🔍 Поиск videoGrid:', document.getElementById("video-grid"));
+      console.log('🔍 Все элементы с классом video-grid:', document.querySelectorAll('.video-grid'));
+      return;
+    }
+
+    console.log('📹 Добавляем видео:', { 
+      isLocal, 
+      displayName, 
+      peerId, 
+      hasStream: !!stream,
+      videoGridExists: !!videoGrid,
+      videoGridChildren: videoGrid.children.length
+    });
 
     let container = null;
     if (peerId) {
@@ -311,7 +358,7 @@ document.addEventListener("DOMContentLoaded", () => {
       container = document.createElement("div");
       container.classList.add("video-container");
       if (peerId) container.setAttribute("data-peer-id", peerId);
-
+    
       const nameLabel = document.createElement("div");
       nameLabel.className = "video-placeholder";
       nameLabel.textContent = displayName || (isLocal ? "Вы" : "Участник");
@@ -331,9 +378,16 @@ document.addEventListener("DOMContentLoaded", () => {
       videoGrid.appendChild(container);
 
       container.addEventListener("dblclick", () => {
-        if (!document.fullscreenElement) container.requestFullscreen().catch(()=>{});
-        else document.exitFullscreen().catch(()=>{});
+        console.log('🖥️ Дабл клик на видео:', peerId || 'local');
+        if (!document.fullscreenElement) {
+          container.requestFullscreen().catch(()=>{});
+        } else {
+          document.exitFullscreen().catch(()=>{});
+        }
       });
+
+      // Добавим визуальную подсказку для дабл клика
+      container.title = "Двойной клик для полноэкранного режима";
     }
 
     if (stream) video.srcObject = stream;
@@ -349,6 +403,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (video.readyState >= 2) tryPlay();
     else video.onloadedmetadata = tryPlay;
+    
+    console.log('✅ Видео добавлено:', { 
+      peerId, 
+      displayName, 
+      containerExists: !!container,
+      videoInDOM: !!video.parentNode 
+    });
   }
 
   function showTapToUnmute(container, video) {
@@ -455,9 +516,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       // сначала пробуем с видео+аудио
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      const videoConstraints = isMobile ? 
+        { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" } :
+        { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" };
+      
+      const audioConstraints = isMobile ?
+        { echoCancellation: true, noiseSuppression: true } :
+        { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+      
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        video: videoConstraints,
+        audio: audioConstraints
       });
 
       myVideoStream = stream;
@@ -669,15 +740,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // Новый участник получил список тех, кто уже в комнате → сам инициирует звонки
   socket.on("room-users", (users) => {
     // users: [{ userId, userName }]
-    console.log('👥 Получен список участников комнаты:', users.length, 'пользователей');
     users.forEach(({ userId, userName: uName }) => {
-      console.log('👤 Добавляем существующего пользователя:', userId, uName);
       participants[userId] = uName || "Участник";
       if (myVideoStream) {
-        console.log('📞 Подключаемся к пользователю:', userId);
         setTimeout(() => connectToNewUser(userId, myVideoStream, participants[userId]), 300);
       } else {
-        console.log('⏳ Откладываем подключение к:', userId, '(нет видео стрима)');
         pendingToConnect.add(userId);
       }
     });
@@ -692,20 +759,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 2) Если пришёл новый пользователь, а стрима ещё нет — отложим подключение
   socket.on("user-connected", (userId, connectedUserName) => {
-    console.log('🆕 Получено user-connected:', userId, connectedUserName);
-    log(`Пользователь ${connectedUserName} подключился`);
     participants[userId] = connectedUserName;
 
     if (userId === peer.id) {
-      console.log('ℹ️ Пропускаем подключение к себе');
       return;
     }
 
     if (myVideoStream) {
-      console.log('📞 Подключаемся к новому пользователю:', userId);
       setTimeout(() => connectToNewUser(userId, myVideoStream, connectedUserName), 500);
     } else {
-      console.log('⏳ Откладываем подключение к новому пользователю:', userId);
       pendingToConnect.add(userId);
     }
   });
