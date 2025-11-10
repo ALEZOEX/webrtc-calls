@@ -12,14 +12,14 @@ let isScreenSharing = false;
 let screenShareStream = null;
 let peer = null;
 let socket = null;
+const participants = {};
+const pendingToConnect = new Set(); // очередь тех, к кому подключимся позже
 
 let urlParams = new URLSearchParams(window.location.search);
 let userName = urlParams.get('userName');
 if (!userName || userName.trim() === "") {
   userName = prompt("Введите ваш никнейм:") || "Аноним";
 }
-
-const participants = {};
 
 function log(message, type = 'info') {
   const timestamp = new Date().toLocaleTimeString();
@@ -123,7 +123,17 @@ transports: ["websocket", "polling"],
     debug: 2
   });
 
-  log(`🔗 Подключение к PeerJS: ${PEER_CONFIG.host}`);
+  // 1) Сразу в комнату, не ждём камеру
+  peer.on("open", (id) => {
+    log("PeerJS подключен: " + id);
+    participants[id] = userName;
+
+    // ВАЖНО: входим в комнату немедленно
+    socket.emit("join-room", ROOM_ID, id, userName);
+
+    // Стартуем получение камеры/микрофона, но это отдельно
+    initLocalStream();
+  });
 
   function toggleFullscreen(element) {
     if (!document.fullscreenElement) {
@@ -233,34 +243,55 @@ if (!call) return;
     if (myVideoStream) return;
 
     try {
+      // сначала пробуем с видео+аудио
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720 },
-        audio: true
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
       });
-
-      const videoTrack = stream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = false;
-     }
 
       myVideoStream = stream;
       addVideoStream(myVideo, stream, true, userName + " (Вы)");
 
+      // обработка входящих звонков
       peer.on("call", handleIncomingCall);
-      socket.emit("join-room", ROOM_ID, peer.id, userName);
-    } catch (error) {
-      console.error("Ошибка медиа:",error);
-      alert("Не удалось получить доступ к камере/микрофону");
+
+      // Подключаемся к тем, кого не успели подключить
+      if (pendingToConnect.size > 0) {
+        for (const uid of Array.from(pendingToConnect)) {
+          connectToNewUser(uid, myVideoStream, participants[uid] || "Участник");
+          pendingToConnect.delete(uid);
+        }
+      }
+    } catch (err1) {
+      // если камера не разрешена, пробуем только аудио
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        myVideoStream = stream;
+        addVideoStream(myVideo, stream, true, userName + " (Вы)");
+        peer.on("call", handleIncomingCall);
+
+        if (pendingToConnect.size > 0) {
+          for (const uid of Array.from(pendingToConnect)) {
+            connectToNewUser(uid, myVideoStream, participants[uid] || "Участник");
+            pendingToConnect.delete(uid);
+          }
+        }
+      } catch (err2) {
+        // если и аудио не дали — всё равно пусть сможете хотя бы смотреть
+        log("Нет доступа к камере/микрофону. Вы будете без собственного стрима.", 'warn');
+        peer.on("call", handleIncomingCall);
+      }
     }
   }
 
+  // 3) Отвечаем на звонок даже если нет своего стрима (тогда просто смотрим)
   function handleIncomingCall(call) {
     if (call.metadata && call.metadata.type === "screen-share") {
       call.answer();
       const remoteVideo = createVideoElement();
       const containerId = call.peer + "-screen";
 
-     call.on("stream", (remoteStream) => {
+      call.on("stream", (remoteStream) => {
         addVideoStream(remoteVideo, remoteStream, false, "🖥️ Демонстрация", containerId);
       });
 
@@ -268,16 +299,18 @@ if (!call) return;
         removeVideoContainerByPeerId(containerId);
       });
     } else {
-      if (!myVideoStream) return;
+      const answerStream = myVideoStream || undefined; // можно ответить без своего стрима
+      call.answer(answerStream);
 
-      call.answer(myVideoStream);
       const remoteVideo = createVideoElement();
-
-      call.on("stream", remoteStream => {
-        const callerName = call.metadata?.userName || "Участник";
+      call.on("stream", (remoteStream) => {
+        const callerName = call.metadata?.userName || participants[call.peer] || "Участник";
         addVideoStream(remoteVideo, remoteStream, false, callerName, call.peer);
-});
-}
+      });
+
+      call.on("close", () => removeVideoContainerByPeerId(call.peer));
+      call.on("error", (e) => console.error("Ошибка вызова:", e));
+    }
   }
 
   if (stopVideo) {
@@ -401,13 +434,17 @@ if (!call) return;
     });
   }
 
+  // 2) Если пришёл новый пользователь, а стрима ещё нет — отложим подключение
   socket.on("user-connected", (userId, connectedUserName) => {
+    log(`Пользователь ${connectedUserName} подключился`);
     participants[userId] = connectedUserName;
-    
-    if (userId !== peer.id && myVideoStream) {
-      setTimeout(() => {
-        connectToNewUser(userId, myVideoStream, connectedUserName);
-      }, 1000);
+
+    if (userId === peer.id) return;
+
+    if (myVideoStream) {
+      setTimeout(() => connectToNewUser(userId, myVideoStream, connectedUserName), 500);
+    } else {
+      pendingToConnect.add(userId);
     }
   });
 

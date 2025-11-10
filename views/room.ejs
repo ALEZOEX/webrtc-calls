@@ -77,28 +77,35 @@
   <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
   
   <script>
-    // Конфигурация
-    const ROOM_ID = "<%= roomId %>";
-    
-    // Используем ПУБЛИЧНЫЙ PeerJS сервер (надежнее)
-    const PEER_CONFIG = {
-      host: '0.peerjs.com',
-      port: 443,
-      path: '/',
-      secure: true,
-      config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' },
-          { urls: 'stun:global.stun.twilio.com:3478' }
-        ]
-      }
-    };
-    
-    console.log('🔧 Room ID:', ROOM_ID);
-    console.log('🔧 PeerJS Config:', PEER_CONFIG);
-  </script>
+  const ROOM_ID = "<%= roomId %>";
+
+  // STUN + TURN (OpenRelay — бесплатный публичный, на практике норм)
+  const PEER_CONFIG = {
+    host: '0.peerjs.com',
+    port: 443,
+    path: '/',
+    secure: true,
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' },
+
+        // TURN (fallback через HTTPS 443)
+        { urls: 'turn:openrelay.metered.ca:80',   username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443',  username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+      ],
+      sdpSemantics: 'unified-plan'
+      // Для диагностики можно временно включить только TURN:
+      // iceTransportPolicy: 'relay'
+    }
+  };
+
+  console.log('🔧 Room ID:', ROOM_ID);
+  console.log('🔧 PeerJS Config:', PEER_CONFIG);
+</script>
   
   <script src="/script.js?v=3.2"></script>
   <script src="/whiteboard.js?v=3.2"></script>

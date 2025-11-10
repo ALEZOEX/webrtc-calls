@@ -43,6 +43,8 @@ app.get("/", (req, res) => {
   res.render("index");
 });
 
+app.get("/healthz", (req, res) => res.status(200).send("ok"));
+
 app.get("/room/:roomId", (req, res) => {
   res.render("room", {
     roomId: req.params.roomId
