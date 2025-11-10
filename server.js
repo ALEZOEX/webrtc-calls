@@ -35,13 +35,17 @@ app.get("/", (req, res) => {
 });
 
 app.get("/room/:roomId", (req, res) => {
+  // Определяем, где мы запущены
+  const isProduction = process.env.NODE_ENV === 'production';
+  const hostname = req.get('host').split(':')[0]; // Получаем домен без порта
+  
   res.render("room", {
     roomId: req.params.roomId,
     peerConfig: {
-      host: process.env.PEER_HOST || 'localhost',
-      port: parseInt(process.env.PEER_PORT) || 3030,
-      path: process.env.PEER_PATH || '/peerjs',
-      secure: process.env.PEER_SECURE === 'true'
+      host: hostname, // Автоматически берет домен из запроса
+      port: isProduction ? 443 : 3030, // На Render всегда 443 (HTTPS)
+      path: '/peerjs', // БЕЗ двойного /peerjs
+      secure: isProduction // true на Render, false локально
     }
   });
 });

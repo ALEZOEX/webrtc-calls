@@ -83,6 +83,9 @@
   <script>
     const ROOM_ID = "<%= roomId %>";
     const PEER_CONFIG = <%- JSON.stringify(peerConfig) %>;
+    
+    // Для отладки - посмотрим, что пришло
+    console.log('🔧 PEER_CONFIG:', PEER_CONFIG);
   </script>
   
   <script src="/script.js?v=3.0"></script>
