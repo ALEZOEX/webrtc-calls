@@ -123,16 +123,14 @@ transports: ["websocket", "polling"],
     debug: 2
   });
 
-  // 1) Сразу в комнату, не ждём камеру
+  // регистрируем входящие вызовы СРАЗУ, до запроса камеры
+  peer.on("call", handleIncomingCall);
+
   peer.on("open", (id) => {
     log("PeerJS подключен: " + id);
     participants[id] = userName;
-
-    // ВАЖНО: входим в комнату немедленно
     socket.emit("join-room", ROOM_ID, id, userName);
-
-    // Стартуем получение камеры/микрофона, но это отдельно
-    initLocalStream();
+    initLocalStream(); // а камеру получаем отдельно
   });
 
   function toggleFullscreen(element) {
@@ -157,55 +155,86 @@ transports: ["websocket", "polling"],
     return video;
   }
 
-  function addVideoStream(video, stream, isLocal = false, displayName = "", peerId = null) {
-   if (!stream) return;
+  function addVideoStream(video, stream, isLocal = false, displayName = "", peerId = null, options = {}) {
+    const { unmuteOverlay = false } = options;
+    const videoGrid = document.getElementById("video-grid");
+    if (!videoGrid) return;
 
+    let container = null;
     if (peerId) {
-      const existingContainer = document.querySelector(`.video-container[data-peer-id="${peerId}"]`);
-      if (existingContainer) {
-        const existingVideo = existingContainer.querySelector("video");
-        if (existingVideo) {
-          existingVideo.srcObject = stream;
-          existingVideo.play().catch(err => console.error("Ошибка:", err));
-        }
-        return;
-      }
+      container = document.querySelector(`.video-container[data-peer-id="${peerId}"]`);
     }
+    if (!container) {
+      container = document.createElement("div");
+      container.classList.add("video-container");
+      if (peerId) container.setAttribute("data-peer-id", peerId);
 
-    const container = document.createElement("div");
-    container.classList.add("video-container");
-    if (peerId) {
-      container.setAttribute("data-peer-id", peerId);
-    }
-
-    container.addEventListener("dblclick", () => {
-      toggleFullscreen(container);
-    });
-
-    video.playsInline = true;
-    if (isLocal) {
-      video.muted = true;
-    }
-
-    video.srcObject = stream;
-    video.style.width = "100%";
-    video.style.height = "100%";
-    video.style.objectFit="cover";
-
-    container.appendChild(video);
-
-    if (displayName) {
       const nameLabel = document.createElement("div");
       nameLabel.className = "video-placeholder";
-      nameLabel.textContent = displayName;
+      nameLabel.textContent = displayName || (isLocal ? "Вы" : "Участник");
       container.appendChild(nameLabel);
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "video-wrapper";
+      wrapper.style.position = "relative";
+      container.appendChild(wrapper);
+
+      video.playsInline = true;
+      video.autoplay = true;
+      // ВАЖНО: на мобильных видео с аудио не автоплеится — стартуем в muted
+      video.muted = isLocal || unmuteOverlay; // для удалённого — true, потом дадим кнопкой включить
+
+      wrapper.appendChild(video);
+      videoGrid.appendChild(container);
+
+      container.addEventListener("dblclick", () => {
+        if (!document.fullscreenElement) container.requestFullscreen().catch(()=>{});
+        else document.exitFullscreen().catch(()=>{});
+      });
     }
 
-    videoGrid.appendChild(container);
+    if (stream) video.srcObject = stream;
 
-    video.onloadedmetadata = () => {
-      video.play().catch(err => console.error("Ошибка:", err));
+    const tryPlay = () => {
+      const p = video.play();
+      if (p && typeof p.catch === "function") {
+        p.catch(() => {
+          if (!isLocal && unmuteOverlay) showTapToUnmute(container, video);
+        });
+      }
     };
+
+    if (video.readyState >= 2) tryPlay();
+    else video.onloadedmetadata = tryPlay;
+  }
+
+  function showTapToUnmute(container, video) {
+    if (container.querySelector(".tap-to-unmute")) return;
+    const overlay = document.createElement("div");
+    overlay.className = "tap-to-unmute";
+    overlay.style.cssText = `
+      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.35); color:#fff; font-weight:600; cursor:pointer; z-index:50;
+    `;
+    overlay.textContent = "Нажмите, чтобы включить звук/видео";
+    overlay.addEventListener("click", async () => {
+      try {
+        video.muted = false;
+        await video.play();
+        overlay.remove();
+      } catch (e) {
+        console.log("Autoplay still blocked:", e);
+      }
+    });
+    container.appendChild(overlay);
+  }
+
+  function attachCallDebug(call) {
+    const pc = call.peerConnection || call._pc;
+    if (pc) {
+      pc.addEventListener('iceconnectionstatechange', () => console.log('ICE', call.peer, pc.iceConnectionState));
+      pc.addEventListener('connectionstatechange', () => console.log('PC', call.peer, pc.connectionState));
+    }
   }
 
   function connectToNewUser(userId, stream, connectedUserName) {
@@ -216,7 +245,10 @@ transports: ["websocket", "polling"],
         metadata: { userName: userName }
       });
 
-if (!call) return;
+      if (!call) return;
+
+      // Add debugging for ICE connection states
+      attachCallDebug(call);
 
       const video = createVideoElement();
 
@@ -284,33 +316,31 @@ if (!call) return;
     }
   }
 
-  // 3) Отвечаем на звонок даже если нет своего стрима (тогда просто смотрим)
   function handleIncomingCall(call) {
     if (call.metadata && call.metadata.type === "screen-share") {
       call.answer();
       const remoteVideo = createVideoElement();
       const containerId = call.peer + "-screen";
-
       call.on("stream", (remoteStream) => {
-        addVideoStream(remoteVideo, remoteStream, false, "🖥️ Демонстрация", containerId);
+        addVideoStream(remoteVideo, remoteStream, false, "🖥️ Демонстрация", containerId, { unmuteOverlay: true });
       });
-
-      call.on("close", () => {
-        removeVideoContainerByPeerId(containerId);
-      });
-    } else {
-      const answerStream = myVideoStream || undefined; // можно ответить без своего стрима
-      call.answer(answerStream);
-
-      const remoteVideo = createVideoElement();
-      call.on("stream", (remoteStream) => {
-        const callerName = call.metadata?.userName || participants[call.peer] || "Участник";
-        addVideoStream(remoteVideo, remoteStream, false, callerName, call.peer);
-      });
-
-      call.on("close", () => removeVideoContainerByPeerId(call.peer));
-      call.on("error", (e) => console.error("Ошибка вызова:", e));
+      call.on("close", () => removeVideoContainerByPeerId(containerId));
+      return;
     }
+
+    // обычный звонок
+    call.answer(myVideoStream || undefined); // отвечаем даже без своего стрима
+    const remoteVideo = createVideoElement();
+
+    // создадим контейнер заранее и покажем оверлей для запуска
+    addVideoStream(remoteVideo, null, false, participants[call.peer] || "Участник", call.peer, { unmuteOverlay: true });
+
+    call.on("stream", (remoteStream) => {
+      addVideoStream(remoteVideo, remoteStream, false, participants[call.peer] || "Участник", call.peer, { unmuteOverlay: true });
+    });
+
+    call.on("close", () => removeVideoContainerByPeerId(call.peer));
+    call.on("error", (e) => console.error("Ошибка вызова:", e));
   }
 
   if (stopVideo) {
@@ -460,12 +490,6 @@ if (!call) return;
 
   socket.on("screenShareStopped", (initiatorPeerId) => {
     removeVideoContainerByPeerId(initiatorPeerId + "-screen");
-  });
-
-  peer.on("open", (id) => {
-    log("PeerJS подключен: " + id);
-    participants[id] = userName;
-    initLocalStream();
   });
 
   peer.on("error", (err) => {

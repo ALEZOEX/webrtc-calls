@@ -24,7 +24,7 @@ A modern, feature-rich video conferencing application built with WebRTC, Node.js
 ```
 .
 ├── public/                 # Static assets
-│   ├── script.js           # Main client-side application logic
+│   ├── script.js           # Main client-sideapplication logic
 │   ├── style.css           # Application styling
 │   └── whiteboard.js       #Interactive whiteboard functionality
 ├── views/                  # EJS templates
@@ -38,7 +38,7 @@ A modern, feature-rich video conferencing application built with WebRTC, Node.js
 └── README.md              # This file
 ```
 
-##🚀 Getting Started
+##🚀 GettingStarted
 
 ### Prerequisites
 
@@ -57,7 +57,7 @@ cd webrtc-video-conferencing
 ```bash
 npm install```
 
-### EnvironmentConfiguration
+###EnvironmentConfiguration
 
 Create a `.env` file in the root directory with the following variables:
 
@@ -83,7 +83,7 @@ MAX_ROOM_HISTORY=100
 ```
 npmstart```
 
-5. Open your browser and navigate to `http://localhost:3030`
+5. Open your browser and navigate to`http://localhost:3030`
 
 ##☁️ Deployment
 
@@ -101,7 +101,7 @@ npmstart```
 5. Add your custom domain if needed
 6. Deploy the service
 
-The application is configured to automatically detect when it's running in a production environment and adjust the PeerJS configuration accordingly.
+The application is configured to automatically detect when it's running in a production environmentand adjust the PeerJS configuration accordingly.
 
 ### Environment Configurationfor Render.com
 
@@ -125,9 +125,35 @@ docker build -t webrtc-conference .
 docker run -p 3030:3030 webrtc-conference
 ```
 
-##🔧 Usage
+##🔧 Troubleshooting
 
-1. **Create a Room**: Click "Create Room" on the main page to generate a new conference room with a unique ID
+### Common Issues and Solutions
+
+1. **Participants not appearing in the video grid**
+   - This is typically caused by one of these issues:
+     - Incoming calls are missed because the call handler is registered too late (after getUserMedia)
+     - Mobile browsers (especially iOS) block autoplay of remote video withaudio
+     - Network restrictions (CGNAT/mobile networks) requiring TURN servers
+
+2. **Fixes implemented**
+   - Incoming calls are now registered immediately after PeerJS initialization
+   - Added support for muted autoplay on mobile devices with "Tap to unmute" overlay
+   - Implemented TURN servers (OpenRelay) for network traversal
+   - Added ICE connection state debugging for troubleshooting
+
+3. **Forcing TURN for testing**
+   To test if network issues are causing connection problems:
+   - Uncomment the `iceTransportPolicy: 'relay'` line in the PEER_CONFIG in `views/room.ejs`
+   - Thisforces all connections through TURN servers
+   - If this works, the issue is with NAT traversal
+
+4. **ICE Connection State Debugging**
+   The application now logs ICE connection states to the browser console:
+   - Look for "ICE [peerId] [state]" and "PC [peerId] [state]"messages
+   - States like "connected" or "completed" indicate successful connections
+   - States like "failed" or "disconnected" indicate network issues
+
+##🔧Usage1. **Create a Room**: Click "Create Room" on the main page to generate a new conference room with a unique ID
 2. **Join a Room**: Click "Join Room" and enter your username and room ID
 3. **Video Controls**:
    - Toggle camera on/off
@@ -139,8 +165,7 @@ docker run -p 3030:3030 webrtc-conference
 
 ## 🎨 UI Features
 
-- Moderndark theme interface
-- Responsive design for all screen sizes
+- Moderndark theme interface- Responsive design for all screen sizes
 - Intuitive control panel
 - Real-time participant indicators
 - Animated transitions and feedback
@@ -167,4 +192,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Thanks to the WebRTC, Socket.IO, and PeerJS communities for their excellent documentation and examples- Inspired bymodern video conferencing platforms like Zoom and Google Meet
+- Thanks to the WebRTC, Socket.IO, and PeerJS communities for their excellent documentation and examples- Inspiredbymodern video conferencing platforms like Zoom and Google Meet
