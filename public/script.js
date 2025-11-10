@@ -1,4 +1,4 @@
-"usestrict";
+"use strict";
 
 //========================================
 // ИНИЦИАЛИЗАЦИЯ И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
@@ -8,12 +8,12 @@ let calls = {};
 let screenShareCalls = {};
 let localScreenShareContainerId = null;
 let myVideoStream = null;
-let isScreenSharing =false;
+let isScreenSharing = false;
 let screenShareStream = null;
 let peer = null;
 let socket = null;
 
-leturlParams = new URLSearchParams(window.location.search);
+let urlParams = new URLSearchParams(window.location.search);
 let userName = urlParams.get('userName');
 if (!userName || userName.trim() === "") {
   userName = prompt("Введите ваш никнейм:") || "Аноним";
@@ -22,7 +22,7 @@ if (!userName || userName.trim() === "") {
 const participants = {};
 
 function log(message, type = 'info') {
-  const timestamp =new Date().toLocaleTimeString();
+  const timestamp = new Date().toLocaleTimeString();
   const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : 'ℹ️';
   console.log(`[${timestamp}] ${prefix}`, message);
 }
@@ -62,7 +62,7 @@ transports: ["websocket", "polling"],
   const messagesContainer = document.querySelector(".messages");
 
   function sendMessage() {
-    const messageText =chatInput.value.trim();
+    const messageText = chatInput.value.trim();
     if (!messageText) return;
     
     socket.emit("message", { sender: userName, text: messageText });
@@ -85,7 +85,7 @@ transports: ["websocket", "polling"],
   socket.on("messageHistory", (history) => {
     if (!messagesContainer) return;
     messagesContainer.innerHTML = "";
-    history.forEach((message)=> {
+    history.forEach((message) => {
       addMessageToChat(message);
     });
   });
@@ -127,7 +127,7 @@ transports: ["websocket", "polling"],
 debug: 3
   });
 
-  functiontoggleFullscreen(element) {
+  function toggleFullscreen(element) {
     if (!document.fullscreenElement) {
       element.requestFullscreen().catch(err => {
         console.error("Ошибка fullscreen:", err);
@@ -170,7 +170,7 @@ debug: 3
       container.setAttribute("data-peer-id", peerId);
     }
 
-    container.addEventListener("dblclick", ()=> {
+    container.addEventListener("dblclick", () => {
       toggleFullscreen(container);
     });
 
@@ -232,7 +232,7 @@ if (!call) return;
   }
 
   async function initLocalStream() {
-    if (myVideoStream)return;
+    if (myVideoStream) return;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -242,7 +242,7 @@ if (!call) return;
 
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
-        videoTrack.enabled= false;
+        videoTrack.enabled = false;
      }
 
       myVideoStream = stream;
@@ -288,7 +288,7 @@ if (!call) return;
       const videoTrack = myVideoStream.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
-        const icon =stopVideo.querySelector("i");
+        const icon = stopVideo.querySelector("i");
         if (icon) {
           icon.className = videoTrack.enabled ? "fa fa-video" : "fa fa-video-slash";
         }
@@ -298,7 +298,7 @@ if (!call) return;
 
   if (muteButton) {
     muteButton.addEventListener("click", () => {
-      if (!myVideoStream)return;
+      if (!myVideoStream) return;
       const audioTrack = myVideoStream.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
@@ -373,7 +373,7 @@ if (!call) return;
     }
 
     isScreenSharing = false;
-    screenShareButton.innerHTML = '<iclass="fa fa-desktop"></i>';
+    screenShareButton.innerHTML = '<i class="fa fa-desktop"></i>';
     socket.emit("screenShareStopped", peer.id);
   }
 
@@ -414,7 +414,7 @@ if (!call) return;
   });
 
   socket.on("user-disconnected", (userId) => {
-    if(calls[userId]) {
+    if (calls[userId]) {
       calls[userId].close();
       delete calls[userId];
     }
