@@ -375,15 +375,49 @@ document.addEventListener("DOMContentLoaded", () => {
   function attachCallDebug(call) {
     const pc = call.peerConnection || call._pc;
     if (pc) {
-      pc.addEventListener('iceconnectionstatechange', () => console.log('ICE', call.peer, pc.iceConnectionState));
-      pc.addEventListener('connectionstatechange', () => console.log('PC', call.peer, pc.connectionState));
+      console.log('🔗 Создано WebRTC соединение с:', call.peer);
+      
+      pc.addEventListener('iceconnectionstatechange', () => {
+        console.log('🧊 ICE состояние:', call.peer, pc.iceConnectionState);
+        if (pc.iceConnectionState === 'failed') {
+          console.log('❌ ICE соединение провалено для:', call.peer);
+          console.log('💡 Попробуйте отключить VPN или использовать другой интернет');
+        }
+      });
+      
+      pc.addEventListener('connectionstatechange', () => {
+        console.log('🔌 PC состояние:', call.peer, pc.connectionState);
+        if (pc.connectionState === 'connected') {
+          console.log('✅ WebRTC соединение установлено с:', call.peer);
+        }
+      });
+      
+      pc.addEventListener('icegatheringstatechange', () => {
+        console.log('🌐 ICE gathering:', call.peer, pc.iceGatheringState);
+      });
     }
   }
 
   function connectToNewUser(userId, stream, connectedUserName) {
-    console.log("Вызываем пользователя: ", userId, connectedUserName);
-    if (!userId || !stream || !peer || peer.disconnected) return;
+    console.log('📞 Вызываем пользователя:', { userId, connectedUserName });
+    console.log('🔍 Проверка состояния:', { 
+      hasUserId: !!userId, 
+      hasStream: !!stream, 
+      hasPeer: !!peer, 
+      peerDisconnected: peer?.disconnected 
+    });
+    
+    if (!userId || !stream || !peer || peer.disconnected) {
+      console.log('❌ Невозможно подключиться: недостаточно данных');
+      return;
+    }
 
+    // Проверяем, не вызываем ли уже этого пользователя
+    if (calls[userId]) {
+      console.log('⚠️ Уже вызываем пользователя:', userId);
+      return;
+    }
+    
     try {
       const call = peer.call(userId, stream, {
         metadata: { userName: userName }
@@ -476,7 +510,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function handleIncomingCall(call) {
-    console.log("Получен входящий вызов от: ", call.peer);
+    console.log('📞 Получен входящий вызов от:', call.peer);
+    
+    // Проверяем, не обрабатываем ли уже этот вызов
+    if (calls[call.peer]) {
+      console.log('⚠️ Вызов от', call.peer, 'уже обрабатывается');
+      return;
+    }
+
     if (call.metadata && call.metadata.type === "screen-share") {
       call.answer();
       const remoteVideo = createVideoElement();
