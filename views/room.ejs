@@ -3,20 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🎥 WebRTC Calls - Room <%= roomId.substring(0, 8) %></title>
-  <link rel="stylesheet" href="/style.css?v=3.0" />
+  <title>Video Conference</title>
+  <link rel="stylesheet" href="/style.css?v=3.2" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📹</text></svg>">
 </head>
 <body>
   <header class="header">
     <div class="logo">
-      <h3>📹 WebRTC Calls</h3>
+      <h3>🎥 Video Conference</h3>
     </div>
     <div class="room-info">
       <i class="fas fa-door-open"></i>
-      <span>Комната:</span>
-      <code><%= roomId.substring(0, 8) %>...</code>
+      <span>Room:</span>
+      <code id="room-code"><%= roomId.substring(0, 8) %>...</code>
     </div>
   </header>
 
@@ -34,7 +33,7 @@
         <button id="screenShareButton" class="control-button" title="Демонстрация экрана">
           <i class="fas fa-desktop"></i>
         </button>
-        <button id="whiteboardButton" class="control-button" title="Интерактивная доска">
+        <button id="whiteboardButton" class="control-button" title="Доска">
           <i class="fas fa-chalkboard"></i>
         </button>
         <button id="inviteButton" class="control-button" title="Пригласить">
@@ -43,10 +42,7 @@
         <button id="toggleChat" class="control-button" title="Чат">
           <i class="fas fa-comments"></i>
         </button>
-        <button id="conference-settings-btn" class="control-button" title="Настройки">
-          <i class="fas fa-cog"></i>
-        </button>
-        <button id="exit-conference-btn" class="control-button danger" title="Покинуть конференцию">
+        <button id="exit-conference-btn" class="control-button danger" title="Выйти">
           <i class="fas fa-phone-slash"></i>
         </button>
       </div>
@@ -54,23 +50,23 @@
 
     <section class="main__right" id="chat-panel">
       <div class="chat-panel">
-        <h3>💬 Чат конференции</h3>
+        <h3>💬 Чат</h3>
         <div class="messages"></div>
         <div class="chat-input-container">
-          <input id="chat_message" type="text" placeholder="Напишите сообщение..." autocomplete="off" />
-          <button id="send" class="chat-send-button" title="Отправить">
+          <input id="chat_message" type="text" placeholder="Сообщение..." autocomplete="off" maxlength="500" />
+          <button id="send" class="chat-send-button">
             <i class="fas fa-paper-plane"></i>
           </button>
         </div>
         <div class="emoji-buttons">
-          <button class="emoji-button" data-emoji="❤️" title="Сердце">❤️</button>
-          <button class="emoji-button" data-emoji="👍" title="Лайк">👍</button>
-          <button class="emoji-button" data-emoji="👎" title="Дизлайк">👎</button>
-          <button class="emoji-button" data-emoji="😂" title="Смех">😂</button>
-          <button class="emoji-button" data-emoji="😱" title="Удивление">😱</button>
-          <button class="emoji-button" data-emoji="😎" title="Крутой">😎</button>
-          <button class="emoji-button" data-emoji="🎉" title="Праздник">🎉</button>
-          <button class="emoji-button" data-emoji="🤔" title="Думаю">🤔</button>
+          <button class="emoji-button" data-emoji="❤️">❤️</button>
+          <button class="emoji-button" data-emoji="👍">👍</button>
+          <button class="emoji-button" data-emoji="👎">👎</button>
+          <button class="emoji-button" data-emoji="😂">😂</button>
+          <button class="emoji-button" data-emoji="😱">😱</button>
+          <button class="emoji-button" data-emoji="😎">😎</button>
+          <button class="emoji-button" data-emoji="🎉">🎉</button>
+          <button class="emoji-button" data-emoji="👏">👏</button>
         </div>
       </div>
     </section>
@@ -81,14 +77,30 @@
   <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
   
   <script>
+    // Конфигурация
     const ROOM_ID = "<%= roomId %>";
-    const PEER_CONFIG = <%- JSON.stringify(peerConfig) %>;
     
-    // Для отладки - посмотрим, что пришло
-    console.log('🔧 PEER_CONFIG:', PEER_CONFIG);
+    // Используем ПУБЛИЧНЫЙ PeerJS сервер (надежнее)
+    const PEER_CONFIG = {
+      host: '0.peerjs.com',
+      port: 443,
+      path: '/',
+      secure: true,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:global.stun.twilio.com:3478' }
+        ]
+      }
+    };
+    
+    console.log('🔧 Room ID:', ROOM_ID);
+    console.log('🔧 PeerJS Config:', PEER_CONFIG);
   </script>
   
-  <script src="/script.js?v=3.0"></script>
-  <script src="/whiteboard.js?v=3.0"></script>
+  <script src="/script.js?v=3.2"></script>
+  <script src="/whiteboard.js?v=3.2"></script>
 </body>
 </html>

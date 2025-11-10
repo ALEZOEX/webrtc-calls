@@ -114,26 +114,16 @@ transports: ["websocket", "polling"],
   // PEERJS ИНИЦИАЛИЗАЦИЯ
   // ========================================
 
-  const iceServers = [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" }
-  ];
-
-  // Используем конфиг, который пришел с сервера
-  console.log('🔗 PeerJS подключение к:', PEER_CONFIG);
-
-  peer = new Peer({
-    host: PEER_CONFIG.host,      // Домен с Render
-    port: PEER_CONFIG.port,      // 443
-    path: PEER_CONFIG.path,      // '/peerjs'
-    secure: PEER_CONFIG.secure,  // true
-    config: {
-      iceServers: iceServers,
-      sdpSemantics: 'unified-plan'
-    },
-    debug: 3
+  peer = new Peer(undefined, {
+    host: PEER_CONFIG.host,
+    port: PEER_CONFIG.port,
+    path: PEER_CONFIG.path,
+    secure: PEER_CONFIG.secure,
+    config: PEER_CONFIG.config,
+    debug: 2
   });
+
+  log(`🔗 Подключение к PeerJS: ${PEER_CONFIG.host}`);
 
   function toggleFullscreen(element) {
     if (!document.fullscreenElement) {
