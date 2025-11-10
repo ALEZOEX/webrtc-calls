@@ -39,11 +39,54 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  console.log('🌐 Проверяем доступность сервера...');
+  
+  // Проверяем доступность сервера перед инициализацией
+  fetch(window.location.origin + '/healthz')
+    .then(response => {
+      if (response.ok) {
+        console.log('✅ Сервер доступен, продолжаем инициализацию');
+        initializeApp();
+      } else {
+        console.log('❌ Сервер отвечает с ошибкой:', response.status);
+        showServerError('Сервер отвечает с ошибкой. Попробуйте позже.');
+      }
+    })
+    .catch(err => {
+      console.log('❌ Сервер недоступен:', err.message);
+      showServerError('Сервер недоступен. Проверьте подключение к интернету или попробуйте позже.');
+    });
+
+  function showServerError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+      position: fixed; top: 20px; right: 20px; background: #ff4444; color: white;
+      padding: 15px; border-radius: 5px; z-index: 10000; max-width: 400px;
+    `;
+    errorDiv.innerHTML = `
+      <strong>Ошибка подключения к серверу</strong><br>
+      ${message}<br>
+      <small>URL: ${window.location.origin}</small>
+    `;
+    document.body.appendChild(errorDiv);
+    
+    setTimeout(() => {
+      if (errorDiv.parentNode) {
+        errorDiv.parentNode.removeChild(errorDiv);
+      }
+    }, 10000);
+  }
+
+  function initializeApp() {
+
   console.log('🔗 Инициализация Socket.IO с сервером:', window.location.origin);
   
   socket = io(window.location.origin, {
     transports: ["websocket", "polling"],
-    reconnection: true
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+    timeout: 20000
   });
 
   const videoGrid = document.getElementById("video-grid");
@@ -190,6 +233,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   socket.on('connect_error', (error) => {
     console.error('❌ Socket.IO ошибка подключения:', error);
+    console.log('🔍 Проверяем доступность сервера:', window.location.origin);
+    
+    // Проверяем доступность сервера
+    fetch(window.location.origin + '/healthz')
+      .then(response => {
+        if (response.ok) {
+          console.log('✅ Сервер отвечает, но Socket.IO не может подключиться');
+        } else {
+          console.log('❌ Сервер отвечает с ошибкой:', response.status);
+        }
+      })
+      .catch(err => {
+        console.log('❌ Сервер недоступен:', err.message);
+        log('Сервер недоступен. Проверьте подключение к интернету.', 'error');
+      });
+    
     log('Ошибка подключения к серверу', 'error');
   });
 
@@ -624,11 +683,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-  window.addEventListener("beforeunload", () => {
-    if (myVideoStream) {
-      myVideoStream.getTracks().forEach(track => track.stop());
-    }
-    socket.disconnect();
-    peer.destroy();
-  });
+    window.addEventListener("beforeunload", () => {
+      if (myVideoStream) {
+        myVideoStream.getTracks().forEach(track => track.stop());
+      }
+      socket.disconnect();
+      peer.destroy();
+    });
+  } // конец initializeApp
 });
