@@ -77,29 +77,25 @@
   
   <script>
     const ROOM_ID = "<%= roomId %>";
+    const ROOM_ID = "<%= roomId %>";
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isProduction = window.location.hostname !== 'localhost';
 
     const PEER_CONFIG = {
-      host: isProduction ? window.location.hostname : '0.peerjs.com',
-      port: isProduction ? (window.location.port ? parseInt(window.location.port) : 443) : 443,
-      path: isProduction ? '/peerjs' : '/',
-      secure: isProduction,
+      host: '0.peerjs.com',
+      port: 443,
+      path: '/',
+      secure: true,
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun.services.mozilla.com' },
-          { urls: 'stun:stun.stunprotocol.org:3478' },
+          { urls: 'stun:global.stun.twilio.com:3478' },
           { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
           { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
-        ],
-        sdpSemantics: 'unified-plan',
-        iceTransportPolicy: 'all',
-        bundlePolicy: 'max-bundle'
+        ]
       }
     };
-    
+
     console.log('🔧 Room ID:', ROOM_ID);
     console.log('🔧 PeerJS Config:', PEER_CONFIG);
   </script>

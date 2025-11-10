@@ -93,11 +93,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Инициализация Socket.IO
   socket = io(window.location.origin, {
-    transports: ["websocket", "polling"],
+    transports: ["polling"], // Принудительно используем polling — надежнее на Render
     reconnection: true,
     reconnectionAttempts: 10,
     reconnectionDelay: 2000,
-    reconnectionDelayMax: 10000,
     timeout: 30000
   });
 
