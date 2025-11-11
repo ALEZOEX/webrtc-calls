@@ -7,11 +7,20 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http, {
   cors: {
     origin: "*",
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST"],
+    credentials: true
   },
-  transports: ['polling', 'websocket'],
-  pingTimeout: 60000,
-  pingInterval: 25000
+  transports: ['websocket', 'polling'], // ✅ Websocket первый
+  pingTimeout: 30000, // ✅ Увеличено для Render
+  pingInterval: 10000, // ✅ Чаще ping
+  upgradeTimeout: 30000,
+  maxHttpBufferSize: 1e8,
+  allowEIO3: true,
+  // ✅ КРИТИЧНО для Render
+  cookie: false,
+  serveClient: false,
+  path: '/socket.io/',
+  connectTimeout: 45000
 });
 
 const PORT = process.env.PORT || 3030;
@@ -269,3 +278,6 @@ http.listen(PORT, () => {
 ╚═══════════════════════════════════════════╝
   `);
 });
+
+// В конце server.js, после http.listen()
+require('./keep-alive');

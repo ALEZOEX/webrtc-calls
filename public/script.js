@@ -10,7 +10,6 @@ const peersRef = [];
 let userVideoAudio = { localUser: { video: false, audio: true } };
 let userStream = null;
 
-// Две отдельные зоны!
 const screenShareZone = document.getElementById("screen-share-zone");
 const participantsGrid = document.getElementById("participants-grid");
 
@@ -18,9 +17,18 @@ const myVideo = document.createElement("video");
 myVideo.muted = true;
 myVideo.playsInline = true;
 
+// ✅ ФЛАГ: инициализация произошла только ОДИН раз
+let isInitialized = false;
+
 const socket = io(window.location.origin, {
-  transports: ["polling", "websocket"],
-  reconnection: true
+  transports: ["websocket", "polling"], // ✅ Сначала websocket, потом polling
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 2000,
+  reconnectionDelayMax: 5000,
+  timeout: 20000,
+  autoConnect: true,
+  forceNew: false // ✅ Не создавать новое соединение
 });
 
 window.socket = socket;
@@ -46,12 +54,54 @@ function getInitial(userName) {
 }
 
 // ==========================================
-// SOCKET.IO
+// SOCKET.IO EVENTS
 // ==========================================
 
 socket.on('connect', () => {
   console.log('✅ Socket подключен:', socket.id);
-  initializeRoom();
+  
+  // ✅ КРИТИЧНО: инициализируем только ОДИН раз!
+  if (!isInitialized) {
+    isInitialized = true;
+    startHeartbeat();
+    initializeRoom();
+  } else {
+    console.log('🔄 Переподключение - повторная инициализация НЕ требуется');
+    
+    // При переподключении - только переприсоединяемся к комнате
+    if (userStream) {
+      socket.emit('BE-join-room', { 
+        roomId: ROOM_ID, 
+        userName: currentUser 
+      });
+    }
+  }
+});
+
+socket.on('disconnect', (reason) => {
+  console.log('🔌 Socket отключен:', reason);
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+});
+
+socket.on('connect_error', (error) => {
+  console.error('❌ Ошибка подключения:', error.message);
+});
+
+socket.on('reconnect_attempt', (attemptNumber) => {
+  console.log('🔄 Попытка переподключения #', attemptNumber);
+});
+
+socket.on('reconnect', (attemptNumber) => {
+  console.log('✅ Переподключено после', attemptNumber, 'попыток');
+  showNotification('✅ Соединение восстановлено', 'success');
+});
+
+socket.on('reconnect_failed', () => {
+  console.error('❌ Не удалось переподключиться');
+  showNotification('❌ Потеряно соединение с сервером', 'error');
 });
 
 // ==========================================
@@ -59,6 +109,8 @@ socket.on('connect', () => {
 // ==========================================
 
 async function initializeRoom() {
+  console.log('🚀 Инициализация комнаты...');
+  
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { width: 1280, height: 720 },
@@ -71,7 +123,8 @@ async function initializeRoom() {
     stream.getVideoTracks()[0].enabled = false;
     userVideoAudio.localUser = { video: false, audio: true };
     
-    addParticipant(myVideo, currentUser, null, true);
+    // ✅ Добавляем локальное видео ТОЛЬКО ОДИН РАЗ
+    addParticipant(myVideo, currentUser, `local-${socket.id}`, true);
     
     const iconV = document.querySelector("#stopVideo i");
     if (iconV) iconV.className = "fa fa-video-slash";
@@ -82,6 +135,8 @@ async function initializeRoom() {
     });
 
     setupSocketListeners(stream);
+    
+    console.log('✅ Комната инициализирована');
     
   } catch (err) {
     console.error("❌ Ошибка доступа к медиа:", err);
@@ -419,14 +474,16 @@ function addPeer(incomingSignal, callerId, stream) {
 // ==========================================
 
 function addParticipant(video, userName, peerId, isLocal) {
-  // ✅ Проверка на дубликат
+  // ✅ КРИТИЧНО: Проверка на существующий контейнер
   if (peerId) {
     const existing = document.querySelector(`[data-peer-id="${peerId}"]`);
     if (existing) {
-      console.warn('⚠️ Контейнер уже существует для:', peerId);
+      console.warn('⚠️ Контейнер уже существует для:', peerId, '- пропускаем');
       return;
     }
   }
+  
+  console.log(`➕ Добавляем участника: ${userName}, peerId: ${peerId}, isLocal: ${isLocal}`);
   
   const container = document.createElement("div");
   container.classList.add("participant-container");
@@ -476,7 +533,8 @@ function addParticipant(video, userName, peerId, isLocal) {
     console.warn("⚠️ Не удалось автовоспроизвести:", err);
   });
   
-  console.log(`✅ Добавлен участник: ${userName} (${isLocal ? 'локальный' : peerId})`);
+  console.log(`✅ Участник добавлен: ${userName} (${isLocal ? 'локальный' : peerId})`);
+  console.log(`📊 Всего контейнеров: ${participantsGrid.querySelectorAll('.participant-container').length}`);
 }
 
 function removeParticipant(peerId) {
@@ -893,32 +951,30 @@ document.querySelectorAll(".emoji-button").forEach(btn => {
 });
 
 // ==========================================
-// CLEANUP - УЛУЧШЕННАЯ ОБРАБОТКА
+// HEARTBEAT - ТОЛЬКО ОДИН РАЗ!
 // ==========================================
 
-// ✅ Heartbeat для проверки соединения (каждые 30 секунд)
 let heartbeatInterval = null;
 
 function startHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+  }
+  
   heartbeatInterval = setInterval(() => {
     if (socket && socket.connected) {
       socket.emit('ping');
+    } else {
+      console.warn('⚠️ Socket не подключен, пропускаем ping');
     }
   }, 30000);
+  
+  console.log('💓 Heartbeat запущен');
 }
 
-socket.on('connect', () => {
-  console.log('✅ Socket подключен:', socket.id);
-  startHeartbeat();
-  initializeRoom();
-});
-
-socket.on('disconnect', () => {
-  console.log('🔌 Socket отключен');
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval);
-    heartbeatInterval = null;
-  }
+// Обработчик pong
+socket.on('pong', () => {
+  // Молча получаем pong
 });
 
 // ✅ Гарантированная отправка при закрытии вкладки
