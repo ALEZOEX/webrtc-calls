@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Video Conference</title>
-  <link rel="stylesheet" href="/style.css?v=3.4" />
+  <link rel="stylesheet" href="/style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
 <body>
@@ -32,9 +32,6 @@
         </button>
         <button id="screenShareButton" class="control-button" title="Демонстрация экрана">
           <i class="fas fa-desktop"></i>
-        </button>
-        <button id="whiteboardButton" class="control-button" title="Доска">
-          <i class="fas fa-chalkboard"></i>
         </button>
         <button id="inviteButton" class="control-button" title="Пригласить">
           <i class="fas fa-user-plus"></i>
@@ -74,14 +71,13 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://unpkg.com/simple-peer@9.11.0/simplepeer.min.js"></script>
-
-<script>
-  const ROOM_ID = "<%= roomId %>";
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  console.log('🔧 Room ID:', ROOM_ID);
-</script>
+  
+  <script>
+    const ROOM_ID = "<%= roomId %>";
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    console.log('🔧 Room ID:', ROOM_ID);
+  </script>
   
   <script src="/script.js"></script>
-  <script src="/whiteboard.js"></script>
 </body>
 </html>
