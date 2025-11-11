@@ -98,7 +98,7 @@ flex-shrink: 0;
 }
 
 /*==========================================
-  VIDEO ZONES (вертикальный стек)
+ VIDEO ZONES (вертикальный стек)
    ========================================== */
 
 .screen-share-zone {
@@ -125,7 +125,7 @@ justify-content: center;
 display: grid;
   gap: 10px;
   padding: 15px;
-  padding-bottom: calc(8vh + 15px); /* ✅ Добавляем отступ для панели */
+  padding-bottom: calc(8vh + 15px); /* ✅ Добавляемотступ для панели */
   background: #1a1a1a;
   align-content: center;
 justify-content: center;
@@ -135,7 +135,7 @@ justify-content: center;
 
 /* Когда демонстрация активна */
 .participants-grid.compact {
-  flex:0 0 auto;
+  flex:00 auto;
   height: 27%;
   overflow-x: auto;
   overflow-y: hidden;
@@ -143,7 +143,7 @@ justify-content: center;
 }
 
 /* ==========================================
-   УЛУЧШЕННЫЕ GRID LAYOUTS========================================== */
+   УЛУЧШЕННЫЕ GRID LAYOUTS==========================================*/
 
 /* 1 участник - центрируем */
 .participants-grid.peers-1 {
@@ -300,18 +300,18 @@ align-items: center;
   transition: all 0.3s ease;
 }
 
-/* Градиенты для разных пользователей */
+/* Градиентыдля разных пользователей */
 .video-avatar[data-color="1"] { background: linear-gradient(135deg, #667eea 0%,#764ba2 100%); }
 .video-avatar[data-color="2"] { background: linear-gradient(135deg,#f093fb 0%, #f5576c 100%); }
 .video-avatar[data-color="3"] { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-.video-avatar[data-color="4"] { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+.video-avatar[data-color="4"]{ background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
 .video-avatar[data-color="5"]{ background: linear-gradient(135deg, #fa709a 0%,#fee140 100%); }
 .video-avatar[data-color="6"] { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
 .video-avatar[data-color="7"] { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
 .video-avatar[data-color="8"] { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
 
 .video-avatar.hidden {
-  opacity: 0;
+ opacity: 0;
   transform: translate(-50%, -50%) scale(0.5);
   pointer-events: none;
 }
@@ -329,7 +329,7 @@ align-items: center;
   color: white;
   padding: 6px 12px;
 border-radius: 6px;
-  font-size: clamp(10px, 1.2vw, 14px);
+  font-size: clamp(10px, 1.2vw,14px);
   font-weight: 600;
   z-index: 4;
   max-width: calc(100% - 16px);
@@ -348,7 +348,7 @@ border-radius: 6px;
    ========================================== */
 
 .video-wrapper{
-  position: relative;
+  position:relative;
  width: 100%;
   height: 100%;
   display: flex;
@@ -433,46 +433,6 @@ object-fit: cover;
 }
 
 /* ==========================================
-   PARTICIPANTS GRID - БЕЗ padding-bottom
-   ========================================== */
-
-.participants-grid {
-  width: 100%;
-  flex: 1;
-  display: grid;
-  gap: 10px;
-  padding: 15px;
-  background: #1a1a1a;
-  align-content: center;
-  justify-content: center;
-  overflow: auto;
-  transition: all 0.3s ease;
-}
-
-/* Когда демонстрация активна */
-.participants-grid.compact {
-  flex: 0 0 auto;
-  height: 27%;
- overflow-x: auto;
-  overflow-y: hidden;
-  padding:10px;
-}
-
-/* ==========================================
-   MAIN LAYOUT - ИСПРАВЛЕННЫЙ
-   ========================================== */
-
-.main__left {
-  position: relative;
-  flex: 1;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: #1a1a1a;
-  transition: flex 0.3s ease;
-}
-
-/* ==========================================
    CHAT PANEL - ТЕМНАЯ ТЕМА
    ========================================== */
 
@@ -481,7 +441,7 @@ object-fit: cover;
   height: 100%;
   overflow: hidden;
   transition: width 0.3s ease;
-  background: #1a1a1a; /*✅ Темный фон вместо белого */
+  background: #1a1a1a; /* ✅ Темный фон вместо белого */
   border-left: 2px solid #2c2c2c;
 }
 
@@ -500,7 +460,7 @@ object-fit: cover;
 
 .chat-panel h3 {
   margin-bottom: 15px;
-  color: #e0e0e0; /* ✅ Светлый текст */
+  color: #e0e0e0; /*✅ Светлый текст */
   font-size: 18px;
   border-bottom: 2px solid #4ea1d3;
   padding-bottom: 10px;
@@ -510,7 +470,7 @@ object-fit: cover;
   flex: 1;
   overflow-y: auto;
   margin-bottom: 15px;
-  padding: 10px;
+padding: 10px;
   background: #0f0f0f; /* ✅ Еще темнее для контраста */
   border-radius: 8px;
   border: 1px solid #2c2c2c;
@@ -518,7 +478,7 @@ object-fit: cover;
 
 .message {
   margin-bottom: 10px;
-  padding: 10px 14px;
+padding: 10px 14px;
   background: #2c2c2c; /* ✅ Темный фон сообщения */
   border-radius: 8px;
   font-size: 14px;
@@ -534,7 +494,7 @@ object-fit: cover;
 }
 
 .message strong {
-  color: #4ea1d3;
+color: #4ea1d3;
   margin-right: 8px;
   font-weight: 600;
 }
@@ -546,11 +506,11 @@ object-fit: cover;
 }
 
 #chat_message {
-  flex:1;
+  flex: 1;
   padding: 12px;
   border: 2px solid #3a3a3a; /* ✅ Темная рамка */
   background: #2c2c2c; /* ✅ Темный фон */
-  color: #e0e0e0; /*✅ Светлый текст */
+  color: #e0e0e0; /* ✅Светлый текст */
   border-radius: 8px;
   font-size: 14px;
   outline: none;
@@ -576,7 +536,7 @@ object-fit: cover;
   color: white;
   font-size: 18px;
   cursor: pointer;
-  transition: all 0.2s;
+transition: all 0.2s;
  box-shadow: 0 2px 8px rgba(78, 161, 211, 0.3);
 }
 
@@ -657,13 +617,13 @@ color: white;
   font-weight: 600;
   z-index: 10;
   display: flex;
-  align-items: center;
+ align-items: center;
   gap:8px;
  border: 1px solid rgba(255, 152, 0, 0.3);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
-/* ==========================================
+/*==========================================
    ИНДИКАТОРКАЧЕСТВА СОЕДИНЕНИЯ
    ========================================== */
 
@@ -687,7 +647,7 @@ background: #ff9800;
 
 .connection-indicator.bad {
   background: #f44336;
-  box-shadow: 0 08px rgba(244, 67, 54, 0.6);
+ box-shadow: 0 08px rgba(244, 67, 54, 0.6);
 }
 
 @keyframes pulse {
