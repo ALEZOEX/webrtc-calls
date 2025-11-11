@@ -1,188 +1,96 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* ==========================================
+   RESET & BASE
+   ========================================== */
 
-/* ========================================
-   ПЕРЕМЕННЫЕ И ОСНОВНЫЕ НАСТРОЙКИ======================================== */
-
-:root {
-  --bg-primary: #0f0f10;
-  --bg-secondary: #1a1a1d;
-  --bg-tertiary: #25262b;
-  --bg-hover: #2c2d33;
-  --accent-primary: #5865f2;
-  --accent-success: #3ba55d;
-  --accent-danger: #ed4245;
-  --accent-warning: #faa81a;
-  --accent-info: #00b8d4;
-  --text-primary:#ffffff;
---text-secondary: #b9bbbe;
-  --text-muted: #72767d;
-  --border-color: rgba(255, 255, 255, 0.06);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 40px rgba(0,0, 0, 0.5);
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.3s ease;
-  --transition-slow: 0.5s ease;
-  --header-height: 64px;
-  --control-panel-height:80px;
---chat-width: 380px;
-  --border-radius: 12px;
-  --border-radius-sm: 8px;
-  --border-radius-lg: 16px;
-}
-
-/* ========================================
-   СБРОС И БАЗОВЫЕ СТИЛИ
-   ========================================*/
-
-*{
+* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   height: 100%;
+  width: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   overflow: hidden;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',sans-serif;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  background: #1a1a1a;
 }
 
-/* Скроллбар */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track{
-  background: var(--bg-secondary);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--bg-hover);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-/* ========================================
-   АНИМАЦИИ
-======================================== */
-
-@keyframes fadeIn{
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideInRight {
-  from { transform: translateX(100%); }
-  to{ transform: translateX(0);}
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -1000px 0;}
-  100% { background-position: 1000px 0; }
-}
-
-/* ========================================
-   ШАПКА
-   ======================================== */
+/* ==========================================
+   HEADER
+   ========================================== */
 
 .header {
-  height: var(--header-height);
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
-  border-bottom: 1px solid var(--border-color);
+  width: 100%;
+  height: 60px;
+  background: #2c2c2c;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  backdrop-filter: blur(10px);
-  z-index: 1000;
-  position: relative;
-}
-
-.header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent-primary),transparent);
-  animation: shimmer 3s infinite;
-}
-
-.header .logo {
-  display: flex;
   align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: transform var(--transition-fast);
+  padding: 0 20px;
+  border-bottom: 2px solid #4ea1d3;
+  z-index: 100;
 }
 
-.header .logo:hover {
-transform: translateX(4px);
-}
-
-.header.logo h3 {
+.logo h3 {
+  color: #4ea1d3;
   font-size: 20px;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-info));
-  -webkit-background-clip: text;
- -webkit-text-fill-color: transparent;
-background-clip:text;
 }
 
 .room-info {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-  background: var(--bg-hover);
-  border-radius: var(--border-radius);
-  font-size: 13px;
-  color:var(--text-secondary);
+  gap: 10px;
+  color: white;
+  font-size: 14px;
 }
 
 .room-info code {
+  background: rgba(78, 161, 211, 0.2);
+  padding: 5px 10px;
+  border-radius: 4px;
   font-family: 'Courier New', monospace;
-  color: var(--accent-primary);
-  font-weight: 600;
-}
-
-/* ========================================
-   ГЛАВНЫЙ КОНТЕЙНЕР
-   ======================================== */
-
-.main{
-  display:flex;
-height:calc(100vh - var(--header-height));
-  position: relative;
-  background: var(--bg-primary);
 }
 
 /* ==========================================
-MAINLAYOUT
+   MAIN LAYOUT (FLEX)
    ========================================== */
+
+.main {
+  display: flex;
+  width: 100%;
+  height: calc(100vh - 60px); /* 100vh - высота header */
+  position: relative;
+}
 
 .main__left {
   position: relative;
-  width: 75%;
-  height: 100vh;
+  flex: 1; /* Занимает всё доступное пространство */
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: #1a1a1a;
+  transition: flex 0.3s ease;
+}
+
+/* Когда чат открыт */
+.main__right {
+  width: 0;
+  height: 100%;
+  overflow: hidden;
+  transition: width 0.3s ease;
+  background: white;
+}
+
+.main__right:not([style*="display: none"]) {
+  width: 350px;
+  flex-shrink: 0;
 }
 
 /* ==========================================
-   SCREEN SHARE ZONE (демонстрация экрана)
+   VIDEO ZONES (вертикальный стек)
    ========================================== */
 
 .screen-share-zone {
@@ -192,19 +100,100 @@ MAINLAYOUT
   background: #0a0a0a;
   transition: height 0.3s ease;
   display: flex;
-  justify-content:center;
+  justify-content: center;
   align-items: center;
   padding: 10px;
-  box-sizing: border-box;
+  flex-shrink: 0; /* Не сжимается */
 }
 
-/* Когда демонстрация активна */
 .screen-share-zone.active {
-  height: 70%;
+  height: 65%; /* 65% от main__left */
   border-bottom: 2px solid #ff9800;
 }
 
-.screen-share-zone .screen-container {
+.participants-grid {
+  width: 100%;
+  flex: 1; /* Занимает оставшееся пространство */
+  display: grid;
+  gap: 10px;
+  padding: 15px;
+  background: #1a1a1a;
+  align-content: center;
+  justify-content: center;
+  overflow: auto;
+  transition: all 0.3s ease;
+}
+
+/* Когда демонстрация активна - участники в компактном режиме */
+.participants-grid.compact {
+  flex: 0 0 auto; /* Не растягивается */
+  height: 27%; /* 65% screen + 27% participants + 8% controls = 100% */
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* ==========================================
+   CONTROL PANEL (фиксированная внизу)
+   ========================================== */
+
+.control-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8%;
+  min-height: 60px;
+  background: #4ea1d3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  padding: 0 20px;
+  z-index: 50;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.control-button {
+  width: 50px;
+  height: 50px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.control-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.control-button:active {
+  transform: scale(0.95);
+}
+
+.control-button.danger {
+  background: #ee2560;
+}
+
+.control-button.danger:hover {
+  background: #f25483;
+}
+
+.control-button i {
+  pointer-events: none;
+}
+
+/* ==========================================
+   SCREEN SHARE CONTAINER
+   ========================================== */
+
+.screen-container {
   width: 100%;
   height: 100%;
   max-width: 1600px;
@@ -212,23 +201,24 @@ MAINLAYOUT
   border-radius: 12px;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 8px 32px rgba(255, 152, 0, 0.3);
+  box-shadow: 0 8px 32px rgba(255, 152, 0, 0.4);
+  border: 2px solid #ff9800;
 }
 
-.screen-share-zone .screen-container video {
+.screen-container video {
   width: 100%;
   height: 100%;
-  object-fit: contain; /* contain для демонстрации! */
- background: #000;
+  object-fit: contain; /* Сохраняем пропорции экрана */
+  background: #000;
 }
 
-.screen-share-zone .screen-label {
+.screen-label {
   position: absolute;
   top: 15px;
   left: 15px;
   background: rgba(255, 152, 0, 0.95);
   color: white;
- padding: 10px 20px;
+  padding: 10px 20px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -238,43 +228,22 @@ MAINLAYOUT
   gap: 8px;
 }
 
-.screen-share-zone .screen-label i {
+.screen-label i {
   font-size: 16px;
 }
 
 /* ==========================================
-   PARTICIPANTS GRID (участники)
-   ========================================== */
-
-.participants-grid {
-  width: 100%;
-  height: 92%; /* По умолчанию 92% (8% для панели управления) */
-  display: grid;
-  gap: 10px;
-  padding: 15px;
-  box-sizing: border-box;
-  background: #1a1a1a;
-  align-content: center;
-  justify-content: center;
-  overflow: hidden;
- transition: height 0.3s ease;
-}
-
-/* Когда демонстрация активна - участники занимают меньше */
-.participants-grid.compact {
-  height: 22%; /* 70% экран + 22% участники + 8% панель = 100%*/
-}
-
-/* ==========================================
-   ДИНАМИЧЕСКИЕ GRID КЛАССЫ (только для участников!)
+   PARTICIPANTS GRID LAYOUTS
    ========================================== */
 
 /* 1 участник */
 .participants-grid.peers-1 {
-  grid-template-columns: minmax(0, 400px);
+  grid-template-columns: 1fr;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-/* 2 участник */
+/* 2 участника */
 .participants-grid.peers-2 {
   grid-template-columns: repeat(2, 1fr);
 }
@@ -310,31 +279,46 @@ MAINLAYOUT
 }
 
 /* 13+ участников */
+.participants-grid.peers-13,
+.participants-grid.peers-14,
+.participants-grid.peers-15,
+.participants-grid.peers-16 {
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+}
+
 .participants-grid.peers-many {
   grid-template-columns: repeat(5, 1fr);
   grid-auto-rows: 1fr;
 }
 
-/* Если демонстрация активна - показываем больше колонок */
+/* КОМПАКТНЫЙ РЕЖИМ (когда демонстрация активна) */
+.participants-grid.compact {
+  padding: 10px;
+  gap: 8px;
+}
+
 .participants-grid.compact.peers-1,
 .participants-grid.compact.peers-2,
 .participants-grid.compact.peers-3,
-.participants-grid.compact.peers-4 {
-  grid-template-columns: repeat(4, 1fr);
+.participants-grid.compact.peers-4,
+.participants-grid.compact.peers-5 {
+  grid-template-columns: repeat(5, 1fr);
   grid-template-rows: 1fr;
 }
 
-.participants-grid.compact.peers-5,
 .participants-grid.compact.peers-6,
 .participants-grid.compact.peers-7,
-.participants-grid.compact.peers-8 {
-  grid-template-columns: repeat(8, 1fr);
+.participants-grid.compact.peers-8,
+.participants-grid.compact.peers-9,
+.participants-grid.compact.peers-10 {
+  grid-template-columns: repeat(10, 1fr);
   grid-template-rows: 1fr;
 }
 
 .participants-grid.compact.peers-many {
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  grid-template-rows: 1fr;
 }
 
 /* ==========================================
@@ -348,8 +332,8 @@ MAINLAYOUT
   overflow: hidden;
   display: flex;
   justify-content: center;
-  align-items:center;
-  min-height: 100px;
+  align-items: center;
+  min-height: 120px;
   transition: all 0.3s ease;
   border: 2px solid transparent;
 }
@@ -357,33 +341,35 @@ MAINLAYOUT
 .participant-container:hover {
   border-color: #4ea1d3;
   box-shadow: 0 0 20px rgba(78, 161, 211, 0.5);
+  z-index: 10;
 }
 
 /* ==========================================
    VIDEO AVATAR
-========================================== */
+   ========================================== */
 
 .video-avatar {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: clamp(60px, 12vw, 120px);
-  height: clamp(60px, 12vw, 120px);
+  width: clamp(50px, 10vw, 100px);
+  height: clamp(50px, 10vw, 100px);
   border-radius: 50%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: clamp(24px, 5vw, 48px);
+  font-size: clamp(20px, 4vw, 40px);
   font-weight: 700;
   color: white;
   z-index: 3;
   text-transform: uppercase;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   transition: all 0.3s ease;
 }
 
+/* Градиенты для разных пользователей */
 .video-avatar[data-color="1"] { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
 .video-avatar[data-color="2"] { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
 .video-avatar[data-color="3"] { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
@@ -407,19 +393,19 @@ MAINLAYOUT
   position: absolute;
   bottom: 8px;
   left: 8px;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(10px);
   color: white;
   padding: 6px 12px;
   border-radius: 6px;
-  font-size: clamp(10px,1.2vw, 14px);
+  font-size: clamp(10px, 1.2vw, 14px);
   font-weight: 600;
   z-index: 4;
   max-width: calc(100% - 16px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .video-name.local-user {
@@ -434,7 +420,7 @@ MAINLAYOUT
   position: relative;
   width: 100%;
   height: 100%;
-display: flex;
+  display: flex;
   justify-content: center;
   align-items: center;
   background: #1a1a1a;
@@ -454,10 +440,130 @@ display: flex;
 }
 
 /* ==========================================
-   АДАПТИВ
+   CHAT PANEL
    ========================================== */
 
-@media (max-width: 768px) {
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px;
+}
+
+.chat-panel h3 {
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 18px;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 15px;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.message {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  font-size: 14px;
+  word-wrap: break-word;
+}
+
+.message strong {
+  color: #4ea1d3;
+  margin-right: 5px;
+}
+
+.chat-input-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+#chat_message {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#chat_message:focus {
+  border-color: #4ea1d3;
+}
+
+.chat-send-button {
+  width: 50px;
+  height: 50px;
+  background: #4ea1d3;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chat-send-button:hover {
+  background: #3d8ab8;
+  transform: scale(1.05);
+}
+
+.emoji-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.emoji-button {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.emoji-button:hover {
+  transform: scale(1.2);
+  border-color: #4ea1d3;
+}
+
+/* ==========================================
+   АДАПТИВ ДЛЯ ПЛАНШЕТОВ
+   ========================================== */
+
+@media (max-width: 1024px) {
+  .header {
+    height: 50px;
+    padding: 0 15px;
+  }
+
+  .logo h3 {
+    font-size: 16px;
+  }
+
+  .room-info {
+    font-size: 12px;
+  }
+
+  .main {
+    height: calc(100vh - 50px);
+  }
+
+  .main__right:not([style*="display: none"]) {
+    width: 300px;
+  }
+
   .screen-share-zone.active {
     height: 60%;
   }
@@ -466,434 +572,128 @@ display: flex;
     height: 32%;
   }
 
-  .participants-grid {
-   grid-template-columns: repeat(2, 1fr) !important;
-    grid-auto-rows: minmax(120px, auto);
+  .control-panel {
+    min-height: 50px;
+    gap: 10px;
+    padding: 0 10px;
   }
 
-  .participants-grid.compact {
-    grid-template-columns: repeat(3, 1fr) !important;
+  .control-button {
+    width: 45px;
+    height: 45px;
+    font-size: 18px;
   }
 }
 
-@media (max-width: 480px) {
+/* ==========================================
+   АДАПТИВ ДЛЯ ТЕЛЕФОНОВ
+   ========================================== */
+
+@media (max-width: 768px) {
+  .header {
+    height: 50px;
+  }
+
+  .main {
+    flex-direction: column;
+    height: calc(100vh - 50px);
+  }
+
+  .main__right:not([style*="display: none"]) {
+    width: 100%;
+    height: 40%;
+    position: absolute;
+    bottom: 8%;
+    left: 0;
+    right: 0;
+    z-index: 60;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  }
+
   .screen-share-zone.active {
     height: 50%;
   }
 
+  .participants-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-auto-rows: minmax(150px, auto);
+    padding: 10px;
+    gap: 8px;
+  }
+
   .participants-grid.compact {
     height: 42%;
+    grid-template-columns: repeat(3, 1fr) !important;
+    overflow-x: auto;
   }
-
-  .participants-grid {
-    grid-template-columns: 1fr !important;
-    padding: 10px;
-    gap:8px;
-  }
-}
-
-/*==========================================
-  АДАПТИВ
-========================================== */
-
-@media (max-width: 768px) {
-  .video-avatar {
-    width: clamp(60px, 20vw, 100px);
-    height: clamp(60px, 20vw, 100px);
-    font-size:clamp(24px, 8vw, 48px);
-  }
-
-  .video-name {
-    bottom: 8px;
-    left: 8px;
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 480px) {
-  .video-avatar {
-    width: 70px;
-    height: 70px;
-    font-size: 32px;
-  }
-
-  .video-name {
-    bottom: 6px;
-    left: 6px;
-    padding: 5px 10px;
-    font-size: 11px;
-  }
-}
-
-/* ==========================================
-   СПЕЦИАЛЬНЫЕ СОСТОЯНИЯ
-   ========================================== */
-
-/* Для демонстрации экрана - делаем блок больше */
-.video-container[data-peer-id="screen-share-local"] {
-  grid-column: span 2;
-  grid-row: span 2;
-  border: 3px solid #ff9800;
-}
-
-@media (max-width: 768px) {
-  .video-container[data-peer-id="screen-share-local"]{
-    grid-column:span 1;
-    grid-row: span 1;
-  }
-}
-
-/* ==========================================
-   АНИМАЦИИ========================================== */
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-   transform: scale(1);
-  }
-}
-
-.video-container {
-  animation: fadeIn 0.3s ease;
-}
-
-/*========================================
-   ПАНЕЛЬ УПРАВЛЕНИЯ
-   ======================================== */
-
-.control-panel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
- gap:8px;
-  padding: 16px;
-  background: linear-gradient(135deg, var(--bg-secondary),var(--bg-tertiary));
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--border-color);
-  min-height: var(--control-panel-height);
-  box-shadow: var(--shadow-md);
-  position: relative;
-}
-
-/* ========================================
-   КНОПКИУПРАВЛЕНИЯ
-   ======================================== */
-
-.control-button {
-  width: 56px;
-  height: 56px;
-  border: none;
-border-radius: 50%;
-  background: var(--bg-hover);
-  color: var(--text-secondary);
-  font-size: 20px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  display: flex;
-  align-items: center;
-  justify-content: center;
- border: 1px solid var(--border-color);
-}
-
-.control-button:hover {
-  background: var(--accent-primary);
-  color: var(--text-primary);
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(88, 101, 242, 0.4);
-}
-
-.control-button[title*="Выйти"]:hover {
-  background: var(--accent-danger);
-}
-
-/* ========================================
-   ПРАВАЯ ПАНЕЛЬ (ЧАТ)
-   ======================================== */
-
-.main__right {
-  width: var(--chat-width);
-  background: var(--bg-secondary);
-  border-left: 1px solid var(--border-color);
-  display: flex;
-  flex-direction:column;
-  animation: slideInRight 0.4s ease;
-  height: 100%;
-}
-
-.chat-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
-  gap: 16px;
-}
-
-.chat-panel h3{
-font-size: 18px;
-  font-weight: 600;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 12px;
-}
-
-/* ========================================
-   СООБЩЕНИЯ ЧАТА
-   ======================================== */
-
-.messages {
- flex:1;
-  background: var(--bg-primary);
-  border-radius: var(--border-radius);
-  padding: 16px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 0;
-}
-
-.message {
-padding:12px 16px;
-  background: var(--bg-tertiary);
-  border-radius: var(--border-radius);
-  animation: fadeIn 0.3s ease;
-  border-left: 3px solid transparent;
-}
-
-.message:hover {
-  background: var(--bg-hover);
-border-left-color:var(--accent-primary);
-  transform: translateX(4px);
-}
-
-.message strong {
-  color: var(--accent-primary);
-  font-weight: 600;
-  display:block;
-  margin-bottom: 4px;
-}
-
-/* ========================================
-   ВВОД СООБЩЕНИЙ
-======================================== */
-
-.chat-input-container {
-  display: flex;
-  gap: 8px;
-  padding: 12px;
-  background: var(--bg-primary);
- border-radius: var(--border-radius);
-  border: 1px solid var(--border-color);
-}
-
-.chat-input-container:focus-within {
- border-color: var(--accent-primary);
-}
-
-#chat_message {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  outline: none;
-}
-
-.chat-send-button {
-  width: 40px;
-  height:40px;
-border: none;
-  border-radius: 50%;
-  background: var(--accent-primary);
-  color: white;
-  cursor: pointer;
-}
-
-.chat-send-button:hover {
-  background:var(--accent-info);
-}
-
-/*========================================
-   КНОПКИ ЭМОДЗИ======================================== */
-
-.emoji-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px;
-  background: var(--bg-primary);
-  border-radius:var(--border-radius);
-}
-
-.emoji-button {
-  width: 40px;
-height: 40px;
-border: none;
-border-radius: 50%;
-  background: var(--bg-hover);
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.emoji-button:hover {
-  transform: scale(1.2);
-}
-
-/* ========================================
-   СТРАНИЦА ВХОДА
-   ========================================*/
-
-.index-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-  padding: 20px;
-}
-
-.index-header h1 {
-  font-size: 48px;
-  font-weight: 700;
-  margin-bottom: 16px;
-background:linear-gradient(135deg, var(--accent-primary), var(--accent-info));
-  -webkit-background-clip: text;
- -webkit-text-fill-color: transparent;
- background-clip: text;
-}
-
-.index-header p {
-  font-size: 20px;
-  color: var(--text-secondary);
-  text-align: center;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.index-actions {
- display: flex;
-  gap: 16px;
-  margin: 40px 0;
-}
-
-.btn{
-  padding: 14px 28px;
-  background:linear-gradient(135deg, var(--accent-primary), var(--accent-info));
-  color: white;
-  border: none;
-  border-radius: var(--border-radius);
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn:hover {
- transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(88, 101, 242, 0.4);
-}
-
-.form-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-border-radius: var(--border-radius-lg);
-  padding: 32px;
-  width: 100%;
-  max-width: 450px;
-}
-
-.form-card h2 {
-  margin-bottom: 24px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-}
-
-.form-group input {
-  width:100%;
-  padding: 12px 16px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-}
-
-/* ========================================
-   АДАПТИВНОСТЬ
-   ======================================== */
-
-@media (max-width: 768px) {
-  :root{
-    --header-height: 56px;
-    --control-panel-height:70px;
-  }
-
-  .header { padding: 0 16px; }
-  .header.logo h3 { font-size: 18px; }
-  .room-info { display: none; }
-
-.main { flex-direction: column; }
-  .main__left {padding: 8px; gap: 8px; }
-
-  .main__right {
-    width: 100%;
-position: fixed;
-    top: var(--header-height);
-right: -100%;
-   bottom: 0;
-    z-index: 2000;
-    transition: right var(--transition-normal);
-    background: var(--bg-secondary);
-  }
-  .main__right.active { right:0; }
-
-  .video-grid {
-    grid-template-columns:1fr;
-    gap: 8px;
-    padding: 4px;
-    padding-bottom: calc(var(--control-panel-height) + 20px);
-  }
-
-  .video-container { border-radius: var(--border-radius); margin: 0; }
 
   .control-panel {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
-    z-index: 1500;
-    background:rgba(26, 26, 29, 0.98);
-    backdrop-filter: blur(20px);
-    padding: 12px 8px;
-gap: 6px;
-}
-
-  .control-button { width: 48px; height: 48px; font-size: 18px; }
-  .chat-panel { padding: 16px; }
-
-  #conference-settings-panel {
-    min-width: 90vw !important;
-    max-width: 90vw !important;
+    height: 8%;
+    min-height: 60px;
+    gap: 8px;
   }
 
-  .index-header h1 { font-size:36px; }
-  .index-actions { flex-direction: column;width: 100%; max-width: 300px; }
-  .form-card { margin: 0 16px; padding:24px; }
+  .control-button {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .video-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+  }
+
+  .video-name {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
 }
 
 @media (max-width: 480px) {
-  .control-panel { padding: 8px; gap:4px; }
- .control-button { width: 40px; height: 40px; font-size: 14px; }
-  .control-panel::after { display: none; }
-  .chat-panel {padding: 12px; }
-  .emoji-buttons { gap: 4px; padding:8px; }
-  .emoji-button { width: 36px; height: 36px; font-size: 18px; }
+  .participants-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .participants-grid.compact {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .control-button {
+    width: 35px;
+    height: 35px;
+    font-size: 14px;
+  }
+
+  .room-info code {
+    display: none;
+  }
+}
+
+/* ==========================================
+   SCROLLBAR STYLING
+   ========================================== */
+
+.participants-grid::-webkit-scrollbar,
+.messages::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.participants-grid::-webkit-scrollbar-track,
+.messages::-webkit-scrollbar-track {
+  background: #2c2c2c;
+  border-radius: 4px;
+}
+
+.participants-grid::-webkit-scrollbar-thumb,
+.messages::-webkit-scrollbar-thumb {
+  background: #4ea1d3;
+  border-radius: 4px;
+}
+
+.participants-grid::-webkit-scrollbar-thumb:hover,
+.messages::-webkit-scrollbar-thumb:hover {
+  background: #3d8ab8;
 }

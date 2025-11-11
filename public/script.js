@@ -366,20 +366,26 @@ function updateParticipantsGrid() {
   const containers = participantsGrid.querySelectorAll('.participant-container');
   const count = containers.length;
   
+  // Убираем все классы
   participantsGrid.classList.remove(
     'peers-1', 'peers-2', 'peers-3', 'peers-4', 
     'peers-5', 'peers-6', 'peers-7', 'peers-8', 
     'peers-9', 'peers-10', 'peers-11', 'peers-12',
+    'peers-13', 'peers-14', 'peers-15', 'peers-16',
     'peers-many'
   );
   
-  if (count <= 12) {
+  // Добавляем нужный класс
+  if (count === 0) {
+    // Если участников нет - убираем все классы
+    return;
+  } else if (count <= 16) {
     participantsGrid.classList.add(`peers-${count}`);
   } else {
     participantsGrid.classList.add('peers-many');
   }
   
-  console.log(`🎨 Участников: ${count}`);
+  console.log(`🎨 Участников в сетке: ${count}`);
 }
 
 // ==========================================
