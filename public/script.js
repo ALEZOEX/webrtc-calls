@@ -1,6 +1,17 @@
 "use strict";
 
 // ==========================================
+// ОТЛАДКА - УДАЛИТЕ ПОСЛЕ ТЕСТИРОВАНИЯ
+// ==========================================
+
+setInterval(() => {
+  console.log('📊 Статус:');
+  console.log('  - Peers в массиве:', peersRef.length);
+  console.log('  - Контейнеров на странице:', document.querySelectorAll('.participant-container').length);
+  console.log('  - peersRef:', peersRef.map(p => ({ id: p.peerID, name: p.userName })));
+}, 10000); // Каждые 10 секунд
+
+// ==========================================
 // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 // ==========================================
 
@@ -99,82 +110,122 @@ function setupSocketListeners(stream) {
     console.log('📥 FE-user-join:', users);
     
     users.forEach(({ userId, info }) => {
-      if (userId !== socket.id) {
-        const peer = createPeer(userId, socket.id, stream);
-        peer.userName = info.userName;
-        peer.peerID = userId;
-        
-        peersRef.push({ peerID: userId, peer, userName: info.userName });
-        
-        userVideoAudio[info.userName] = { 
-          video: info.video, 
-          audio: info.audio 
-        };
+      // ✅ КРИТИЧНО: Пропускаем самого себя!
+      if (userId === socket.id) {
+        console.log('⏭️ Пропускаем самого себя:', userId);
+        return;
       }
+      
+      // ✅ Проверяем, нет ли уже этого peer
+      const existingPeer = peersRef.find(p => p.peerID === userId);
+      if (existingPeer) {
+        console.log('⏭️ Peer уже существует:', userId);
+        return;
+      }
+      
+      console.log('📞 Создаем peer для:', userId, info.userName);
+      
+      const peer = createPeer(userId, socket.id, stream);
+      peer.userName = info.userName;
+      peer.peerID = userId;
+      
+      peersRef.push({ peerID: userId, peer, userName: info.userName });
+      
+      userVideoAudio[info.userName] = { 
+        video: info.video, 
+        audio: info.audio 
+      };
     });
   });
 
   socket.on('FE-receive-call', ({ signal, from, info }) => {
     console.log('📞 FE-receive-call от:', from);
     
-    const peerIdx = peersRef.find(p => p.peerID === from);
-    
-    if (!peerIdx) {
-      const peer = addPeer(signal, from, stream);
-      peer.userName = info.userName;
-      peer.peerID = from;
-      
-      peersRef.push({ peerID: from, peer, userName: info.userName });
-      
-      userVideoAudio[info.userName] = { 
-        video: info.video, 
-        audio: info.audio 
-      };
+    // ✅ КРИТИЧНО: Пропускаем самого себя!
+    if (from === socket.id) {
+      console.log('⏭️ Игнорируем вызов от самого себя');
+      return;
     }
+    
+    // ✅ Проверяем, нет ли уже этого peer
+    const existingPeer = peersRef.find(p => p.peerID === from);
+    if (existingPeer) {
+      console.log('⏭️ Входящий peer уже существует:', from);
+      return;
+    }
+    
+    console.log('✅ Принимаем вызов от:', from, info.userName);
+    
+    const peer = addPeer(signal, from, stream);
+    peer.userName = info.userName;
+    peer.peerID = from;
+    
+    peersRef.push({ peerID: from, peer, userName: info.userName });
+    
+    userVideoAudio[info.userName] = { 
+      video: info.video, 
+      audio: info.audio 
+    };
   });
 
   socket.on('FE-call-accepted', ({ signal, answerId }) => {
     console.log('✅ FE-call-accepted от:', answerId);
+    
     const peerIdx = peersRef.find(p => p.peerID === answerId);
     if (peerIdx) {
       peerIdx.peer.signal(signal);
+    } else {
+      console.warn('⚠️ Peer не найден для call-accepted:', answerId);
     }
   });
 
   socket.on('FE-user-leave', ({ userId, userName }) => {
     console.log('👋 FE-user-leave:', userId, userName);
     
+    // ✅ Показываем уведомление
+    showNotification(`👋 ${userName} вышел из конференции`, 'info');
+    
     const peerIdx = peersRef.findIndex(p => p.peerID === userId);
     
     if (peerIdx !== -1) {
       const peer = peersRef[peerIdx];
+      const container = document.querySelector(`[data-peer-id="${userId}"]`);
       
-      // Уничтожаем peer
-      if (peer.peer && typeof peer.peer.destroy === 'function') {
-        try {
+      // ✅ Плавное исчезновение
+      if (container) {
+        container.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        container.style.opacity = '0';
+        container.style.transform = 'scale(0.9)';
+        
+        setTimeout(() => {
+          if (peer.peer && typeof peer.peer.destroy === 'function') {
+            try {
+              peer.peer.destroy();
+            } catch (err) {
+              console.warn('⚠️ Ошибка при уничтожении peer:', err);
+            }
+          }
+          
+          peersRef.splice(peerIdx, 1);
+          removeParticipant(userId);
+          
+          if (userName && userVideoAudio[userName]) {
+            delete userVideoAudio[userName];
+          }
+          
+          updateParticipantsGrid();
+          
+          console.log(`✅ Участник ${userName} удален, осталось: ${peersRef.length}`);
+        }, 300);
+      } else {
+        if (peer.peer && typeof peer.peer.destroy === 'function') {
           peer.peer.destroy();
-        } catch (err) {
-          console.warn('⚠️ Ошибка при уничтожении peer:', err);
         }
+        peersRef.splice(peerIdx, 1);
+        updateParticipantsGrid();
       }
-      
-      // Удаляем из массива
-      peersRef.splice(peerIdx, 1);
-      
-      // Удаляем видео элемент
-      removeParticipant(userId);
-      
-      // Удаляем из userVideoAudio
-      if (userName && userVideoAudio[userName]) {
-        delete userVideoAudio[userName];
-      }
-      
-      // ✅ КРИТИЧНО: Обновляем сетку после удаления
-      updateParticipantsGrid();
-      
-      console.log(`✅ Участник ${userName} полностью удален, осталось: ${peersRef.length}`);
     } else {
-      console.warn(`⚠️ Peer ${userId} не найден в списке`);
+      console.warn(`⚠️ Peer ${userId} не найден для удаления`);
     }
   });
 
@@ -380,6 +431,15 @@ function addPeer(incomingSignal, callerId, stream) {
 // ==========================================
 
 function addParticipant(video, userName, peerId, isLocal) {
+  // ✅ Проверка на дубликат
+  if (peerId) {
+    const existing = document.querySelector(`[data-peer-id="${peerId}"]`);
+    if (existing) {
+      console.warn('⚠️ Контейнер уже существует для:', peerId);
+      return;
+    }
+  }
+  
   const container = document.createElement("div");
   container.classList.add("participant-container");
   if (peerId) container.setAttribute("data-peer-id", peerId);
@@ -427,6 +487,8 @@ function addParticipant(video, userName, peerId, isLocal) {
   video.play().catch(err => {
     console.warn("⚠️ Не удалось автовоспроизвести:", err);
   });
+  
+  console.log(`✅ Добавлен участник: ${userName} (${isLocal ? 'локальный' : peerId})`);
 }
 
 function removeParticipant(peerId) {

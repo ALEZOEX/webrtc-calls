@@ -102,7 +102,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('BE-join-room', ({ roomId, userName }) => {
-    console.log(`📥 ${userName} присоединился к ${roomId}`);
+    console.log(`📥 ${userName} (${socket.id}) присоединился к ${roomId}`);
     
     socket.join(roomId);
     socketList[socket.id] = { 
@@ -113,11 +113,12 @@ io.on('connection', (socket) => {
       joinedAt: Date.now()
     };
 
-    // Собираем всех пользователей комнаты
     const users = [];
     const room = io.sockets.adapter.rooms.get(roomId);
     
     if (room) {
+      console.log(`📋 Участники в комнате ${roomId}:`, Array.from(room));
+      
       room.forEach((clientId) => {
         if (socketList[clientId]) {
           users.push({ 
@@ -132,6 +133,10 @@ io.on('connection', (socket) => {
       });
     }
 
+    console.log(`📤 Отправляем FE-user-join с ${users.length} участниками`);
+    console.log('   Список:', users.map(u => `${u.info.userName} (${u.userId})`));
+    
+    // ✅ КРИТИЧНО: broadcast.to - НЕ отправляет самому себе!
     socket.broadcast.to(roomId).emit('FE-user-join', users);
     
     // ✅ Очищаем таймер отключения (если был)

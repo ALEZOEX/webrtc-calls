@@ -38,7 +38,7 @@ body {
   color: #4ea1d3;
   font-size: 20px;
   font-weight: 600;
- text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .room-info {
@@ -66,7 +66,7 @@ body {
    MAINLAYOUT (FLEX)
    ========================================== */
 
-.main {
+.main{
   display: flex;
   width: 100%;
   height: calc(100vh - 60px); /* 100vh - высота header */
@@ -98,7 +98,7 @@ flex-shrink: 0;
 }
 
 /*==========================================
-   VIDEO ZONES (вертикальный стек)
+  VIDEO ZONES (вертикальный стек)
    ========================================== */
 
 .screen-share-zone {
@@ -108,7 +108,7 @@ flex-shrink: 0;
   background: #0a0a0a;
   transition:height 0.3s ease;
   display: flex;
-  justify-content: center;
+justify-content: center;
   align-items: center;
   padding: 10px;
   flex-shrink: 0; /* Не сжимается */
@@ -116,7 +116,7 @@ flex-shrink: 0;
 
 .screen-share-zone.active {
   height: 65%; /* 65% от main__left */
-  border-bottom:2px solid #ff9800;
+  border-bottom:2px solid#ff9800;
 }
 
 .participants-grid {
@@ -135,7 +135,7 @@ justify-content: center;
 
 /* Когда демонстрация активна */
 .participants-grid.compact {
-  flex: 0 0 auto;
+  flex:0 0 auto;
   height: 27%;
   overflow-x: auto;
   overflow-y: hidden;
@@ -143,8 +143,7 @@ justify-content: center;
 }
 
 /* ==========================================
-   УЛУЧШЕННЫЕ GRID LAYOUTS
-   ========================================== */
+   УЛУЧШЕННЫЕ GRID LAYOUTS========================================== */
 
 /* 1 участник - центрируем */
 .participants-grid.peers-1 {
@@ -154,7 +153,7 @@ justify-content: center;
   align-content: center;
 }
 
-/* 2 участника - 2 колонки */
+/* 2 участника - 2колонки */
 .participants-grid.peers-2 {
   grid-template-columns: repeat(2, 1fr);
   max-width: 1000px;
@@ -211,7 +210,7 @@ margin: 0 auto;
 }
 
 /* ==========================================
-   КОМПАКТНЫЙ РЕЖИМ (демонстрация активна)
+   КОМПАКТНЫЙРЕЖИМ (демонстрация активна)
    ========================================== */
 
 .participants-grid.compact.peers-1 {
@@ -258,7 +257,7 @@ margin: 0 auto;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 150px; /*✅ Минимальная высота */
+ min-height: 150px; /*✅ Минимальная высота */
   aspect-ratio: 16/9; /* ✅ Сохраняем пропорции */
   transition: all 0.3s ease;
   border: 2px solid #2c2c2c;
@@ -284,7 +283,7 @@ margin: 0 auto;
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+transform: translate(-50%, -50%);
   width: clamp(50px, 10vw, 100px);
   height: clamp(50px, 10vw, 100px);
   border-radius: 50%;
@@ -303,10 +302,10 @@ align-items: center;
 
 /* Градиенты для разных пользователей */
 .video-avatar[data-color="1"] { background: linear-gradient(135deg, #667eea 0%,#764ba2 100%); }
-.video-avatar[data-color="2"] { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.video-avatar[data-color="2"] { background: linear-gradient(135deg,#f093fb 0%, #f5576c 100%); }
 .video-avatar[data-color="3"] { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
 .video-avatar[data-color="4"] { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-.video-avatar[data-color="5"]{ background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+.video-avatar[data-color="5"]{ background: linear-gradient(135deg, #fa709a 0%,#fee140 100%); }
 .video-avatar[data-color="6"] { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
 .video-avatar[data-color="7"] { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
 .video-avatar[data-color="8"] { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
@@ -337,7 +336,7 @@ border-radius: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  box-shadow: 02px 8px rgba(0, 0, 0, 0.5);
 }
 
 .video-name.local-user {
@@ -348,7 +347,7 @@ border-radius: 6px;
    VIDEO WRAPPER
    ========================================== */
 
-.video-wrapper {
+.video-wrapper{
   position: relative;
  width: 100%;
   height: 100%;
@@ -372,95 +371,242 @@ object-fit: cover;
 }
 
 /* ==========================================
-   CHAT PANEL
+   CONTROLPANEL - ИСПРАВЛЕННАЯ
    ========================================== */
+
+.control-panel {
+  position: relative; /* ✅ Было absolute - меняем на relative */
+  width: 100%;
+  height: 8%;
+  min-height: 60px;
+  background: linear-gradient(totop, #1a1a1a 0%, #2c2c2c 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  padding: 0 20px;
+  z-index: 50;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  border-top: 1px solid #3a3a3a;
+  flex-shrink: 0; /* ✅ Не сжимается */
+}
+
+.control-button {
+  width: 50px;
+  height: 50px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(78, 161, 211, 0.15);
+  color: #e0e0e0;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid rgba(78, 161, 211,0.3);
+}
+
+.control-button:hover {
+  background: rgba(78, 161, 211, 0.3);
+  color: white;
+  transform: scale(1.1);
+  border-color: rgba(78, 161, 211, 0.6);
+}
+
+.control-button:active {
+  transform: scale(0.95);
+}
+
+.control-button.danger {
+  background: rgba(238, 37, 96, 0.2);
+  border-color: rgba(238, 37, 96, 0.4);
+}
+
+.control-button.danger:hover {
+  background: rgba(238, 37, 96, 0.4);
+  border-color: rgba(238, 37, 96, 0.7);
+}
+
+.control-button i {
+  pointer-events: none;
+}
+
+/* ==========================================
+   PARTICIPANTS GRID - БЕЗ padding-bottom
+   ========================================== */
+
+.participants-grid {
+  width: 100%;
+  flex: 1;
+  display: grid;
+  gap: 10px;
+  padding: 15px;
+  background: #1a1a1a;
+  align-content: center;
+  justify-content: center;
+  overflow: auto;
+  transition: all 0.3s ease;
+}
+
+/* Когда демонстрация активна */
+.participants-grid.compact {
+  flex: 0 0 auto;
+  height: 27%;
+ overflow-x: auto;
+  overflow-y: hidden;
+  padding:10px;
+}
+
+/* ==========================================
+   MAIN LAYOUT - ИСПРАВЛЕННЫЙ
+   ========================================== */
+
+.main__left {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a1a;
+  transition: flex 0.3s ease;
+}
+
+/* ==========================================
+   CHAT PANEL - ТЕМНАЯ ТЕМА
+   ========================================== */
+
+.main__right {
+  width: 0;
+  height: 100%;
+  overflow: hidden;
+  transition: width 0.3s ease;
+  background: #1a1a1a; /*✅ Темный фон вместо белого */
+  border-left: 2px solid #2c2c2c;
+}
+
+.main__right:not([style*="display: none"]) {
+  width: 350px;
+  flex-shrink: 0;
+}
 
 .chat-panel {
   display: flex;
   flex-direction: column;
   height: 100%;
   padding: 20px;
+  background: #1a1a1a; /* ✅ Темный фон */
 }
 
 .chat-panel h3 {
   margin-bottom: 15px;
-  color: #333;
+  color: #e0e0e0; /* ✅ Светлый текст */
   font-size: 18px;
+  border-bottom: 2px solid #4ea1d3;
+  padding-bottom: 10px;
 }
 
 .messages {
   flex: 1;
   overflow-y: auto;
- margin-bottom: 15px;
+  margin-bottom: 15px;
   padding: 10px;
-  background: #f5f5f5;
+  background: #0f0f0f; /* ✅ Еще темнее для контраста */
   border-radius: 8px;
+  border: 1px solid #2c2c2c;
 }
 
-.message{
+.message {
   margin-bottom: 10px;
-  padding: 8px 12px;
-  background: white;
-  border-radius: 6px;
+  padding: 10px 14px;
+  background: #2c2c2c; /* ✅ Темный фон сообщения */
+  border-radius: 8px;
   font-size: 14px;
   word-wrap: break-word;
+  color: #e0e0e0; /* ✅ Светлый текст */
+  border-left: 3px solid #4ea1d3;
+  transition: all 0.2s ease;
+}
+
+.message:hover {
+  background: #3a3a3a;
+  transform: translateX(3px);
 }
 
 .message strong {
   color: #4ea1d3;
- margin-right: 5px;
+  margin-right: 8px;
+  font-weight: 600;
 }
 
 .chat-input-container {
   display: flex;
   gap: 10px;
-  margin-bottom:10px;
+  margin-bottom: 10px;
 }
 
 #chat_message {
-  flex: 1;
+  flex:1;
   padding: 12px;
-  border: 2px solid #ddd;
+  border: 2px solid #3a3a3a; /* ✅ Темная рамка */
+  background: #2c2c2c; /* ✅ Темный фон */
+  color: #e0e0e0; /*✅ Светлый текст */
   border-radius: 8px;
   font-size: 14px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
+}
+
+#chat_message::placeholder {
+  color: #666;
 }
 
 #chat_message:focus {
   border-color: #4ea1d3;
+  background: #333;
+  box-shadow: 0 0 0 3px rgba(78, 161, 211, 0.1);
 }
 
 .chat-send-button {
   width: 50px;
   height: 50px;
-  background: #4ea1d3;
+  background: linear-gradient(135deg, #4ea1d3 0%, #3d8ab8 100%);
   border: none;
   border-radius: 8px;
   color: white;
   font-size: 18px;
   cursor: pointer;
   transition: all 0.2s;
+ box-shadow: 0 2px 8px rgba(78, 161, 211, 0.3);
 }
 
 .chat-send-button:hover {
-  background:#3d8ab8;
+  background: linear-gradient(135deg, #5fb3e3 0%, #4ea1d3 100%);
   transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(78, 161, 211, 0.5);
+}
+
+.chat-send-button:active {
+  transform: scale(0.95);
 }
 
 .emoji-buttons {
   display: flex;
-  gap:8px;
+  gap: 8px;
   flex-wrap: wrap;
+  padding: 10px;
+  background: #2c2c2c;
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
 }
 
 .emoji-button {
   width: 40px;
   height: 40px;
-  border: 2px solid #ddd;
+  border: 2px solid #3a3a3a; /* ✅ Темная рамка */
   border-radius: 8px;
-  background: white;
-  font-size: 20px;
+  background: #1a1a1a; /* ✅ Темный фон */
+ font-size: 20px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -468,166 +614,31 @@ object-fit: cover;
 .emoji-button:hover {
   transform: scale(1.2);
   border-color: #4ea1d3;
+  background: #2c2c2c;
+  box-shadow: 0 0 10px rgba(78, 161, 211, 0.3);
 }
 
-/* ==========================================
-   АДАПТИВ ДЛЯ ПЛАНШЕТОВ
-   ========================================== */
-
-@media (max-width: 1024px) {
-  .header {
-    height: 50px;
-    padding: 0 15px;
+.emoji-button:active {
+  transform: scale(1.1);
 }
 
-  .logo h3 {
-    font-size: 16px;
-  }
-
-  .room-info {
-    font-size: 12px;
-  }
-
-  .main {
-    height: calc(100vh - 50px);
-  }
-
-  .main__right:not([style*="display: none"]) {
-    width: 300px;
-  }
-
-  .screen-share-zone.active {
-    height: 60%;
-}
-
-  .participants-grid.compact {
-    height: 32%;
-  }
-
-  .control-panel {
-    min-height: 50px;
-    gap: 10px;
-    padding: 0 10px;
-  }
-
-  .control-button {
-    width: 45px;
-height: 45px;
-    font-size: 18px;
-  }
-}
-
-/* ==========================================
-   АДАПТИВ ДЛЯ ТЕЛЕФОНОВ
-   ========================================== */
-
-@media (max-width: 768px) {
-  .header {
-    height: 50px;
-  }
-
-  .main {
-    flex-direction: column;
-    height: calc(100vh - 50px);
-  }
-
- .main__right:not([style*="display: none"]) {
-    width: 100%;
-    height: 40%;
-    position:absolute;
-    bottom: 8%;
-    left: 0;
-    right: 0;
-    z-index: 60;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
-  }
-
-  .screen-share-zone.active {
-height: 50%;
-  }
-
-  .participants-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    grid-auto-rows: minmax(150px, auto);
-    padding: 10px;
-    gap: 8px;
-  }
-
-  .participants-grid.compact {
-    height: 42%;
-    grid-template-columns: repeat(3, 1fr) !important;
-    overflow-x: auto;
-  }
-
-  .control-panel {
-    height: 8%;
-    min-height: 60px;
-    gap: 8px;
-  }
-
-.control-button {
-    width: 40px;
-    height: 40px;
-    font-size: 16px;
-  }
-
-  .video-avatar {
-    width: 60px;
-    height: 60px;
-    font-size: 24px;
-  }
-
- .video-name {
-    font-size: 11px;
-    padding: 4px 8px;
-  }
-}
-
-@media (max-width: 480px) {
-  .participants-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .participants-grid.compact {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-
-  .control-button {
-    width: 35px;
-    height: 35px;
-    font-size: 14px;
-  }
-
-  .room-infocode {
-    display: none;
-  }
-}
-
-/* ==========================================
-SCROLLBAR STYLING
-   ========================================== */
-
-.participants-grid::-webkit-scrollbar,
+/* Scrollbar для чата */
 .messages::-webkit-scrollbar {
   width: 8px;
-  height: 8px;
 }
 
-.participants-grid::-webkit-scrollbar-track,
-.messages::-webkit-scrollbar-track{
-  background: #2c2c2c;
- border-radius: 4px;
+.messages::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 4px;
 }
 
-.participants-grid::-webkit-scrollbar-thumb,
 .messages::-webkit-scrollbar-thumb {
   background: #4ea1d3;
   border-radius: 4px;
 }
 
-.participants-grid::-webkit-scrollbar-thumb:hover,
 .messages::-webkit-scrollbar-thumb:hover {
-  background: #3d8ab8;
+  background: #5fb3e3;
 }
 
 /*==========================================
@@ -638,7 +649,7 @@ SCROLLBAR STYLING
   position: absolute;
   top: 15px;
   left: 15px;
-  background: rgba(255, 152, 0, 0.85); /* Менее яркий */
+  background: rgba(255, 152, 0, 0.85); /* Менее яркий*/
 color: white;
   padding: 10px 20px;
   border-radius: 8px;
@@ -662,21 +673,21 @@ color: white;
   right: 8px;
   width: 12px;
   height: 12px;
-  border-radius: 50%;
+  border-radius:50%;
   background: #4CAF50;
   z-index: 5;
   box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
   animation: pulse 2s infinite;
 }
 
-.connection-indicator.poor {
+.connection-indicator.poor{
 background: #ff9800;
   box-shadow: 0 0 8px rgba(255, 152, 0, 0.6);
 }
 
 .connection-indicator.bad {
   background: #f44336;
-  box-shadow: 0 0 8px rgba(244, 67, 54, 0.6);
+  box-shadow: 0 08px rgba(244, 67, 54, 0.6);
 }
 
 @keyframes pulse {
