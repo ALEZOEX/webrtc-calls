@@ -18,7 +18,7 @@ const io = require('socket.io')(http, {
   allowEIO3: true,
   // ✅ КРИТИЧНО для Render
   cookie: false,
-  serveClient: false,
+  serveClient: false, // ✅ Keep as false since we're using CDN
   path: '/socket.io/',
   connectTimeout: 45000
 });
