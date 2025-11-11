@@ -1,9 +1,9 @@
 "use strict";
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const videoGrid = document.getElementById("video-grid");
   if (!videoGrid) {
-    console.error("video-grid не найден");
+    console.error("❌ video-grid не найден");
     return;
   }
 
@@ -19,10 +19,47 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentTool = "brush";
   let collectedPoints = [];
 
-  const socket = window.socket || io(window.location.origin);
+  // ✅ ИСПРАВЛЕНИЕ #3: Ждем, пока script.js создаст socket
+  let socket = null;
+  
+  async function waitForSocket() {
+    return new Promise((resolve) => {
+      if (window.socket) {
+        resolve(window.socket);
+      } else {
+        console.log("⏳ Ожидаем создания socket из script.js...");
+        const interval = setInterval(() => {
+          if (window.socket) {
+            clearInterval(interval);
+            console.log("✅ Socket получен из window.socket");
+            resolve(window.socket);
+          }
+        }, 100);
+        
+        // Таймаут на 10 секунд
+        setTimeout(() => {
+          clearInterval(interval);
+          console.error("❌ Таймаут ожидания socket");
+          resolve(null);
+        }, 10000);
+      }
+    });
+  }
+
+  socket = await waitForSocket();
+  
+  if (!socket) {
+    console.error("❌ Socket не найден, белая доска не будет работать");
+    return;
+  }
 
   function initWhiteboard() {
-    if (whiteboardContainer) return;
+    if (whiteboardContainer) {
+      console.log("⚠️ Доска уже инициализирована");
+      return;
+    }
+
+    console.log("🎨 Инициализация белой доски");
 
     whiteboardContainer = document.createElement("div");
     whiteboardContainer.id = "shared-whiteboard";
@@ -34,6 +71,7 @@ document.addEventListener("DOMContentLoaded", () => {
     whiteboardContainer.style.gridColumn = "1 / -1";
     whiteboardContainer.style.aspectRatio = "16/9";
     whiteboardContainer.style.maxHeight = "70vh";
+    whiteboardContainer.style.width = "100%";
 
     canvas = document.createElement("canvas");
     canvas.id = "whiteboard-canvas";
@@ -41,6 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
     canvas.style.height = "100%";
     canvas.style.touchAction = "none";
     canvas.style.cursor = "crosshair";
+    canvas.style.display = "block";
     
     context = canvas.getContext("2d");
     
@@ -57,8 +96,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateCanvasSize() {
     if (!canvas || !whiteboardContainer) return;
     const rect = whiteboardContainer.getBoundingClientRect();
+    const oldImageData = context.getImageData(0, 0, canvas.width, canvas.height);
     canvas.width = rect.width;
     canvas.height = rect.height;
+    context.putImageData(oldImageData, 0, 0);
+    console.log("📐 Canvas размер обновлен:", canvas.width, "x", canvas.height);
   }
 
   function setupCanvasListeners() {
@@ -79,6 +121,8 @@ document.addEventListener("DOMContentLoaded", () => {
       context.lineTo(pos.x, pos.y);
       context.strokeStyle = currentTool === "eraser" ? "#FFFFFF" : currentColor;
       context.lineWidth = lineWidth;
+      context.lineCap = "round";
+      context.lineJoin = "round";
       context.stroke();
 
       socket.emit("whiteboardDraw", {
@@ -94,17 +138,25 @@ document.addEventListener("DOMContentLoaded", () => {
       drawing = false;
       collectedPoints = [];
     });
+
+    canvas.addEventListener("pointerleave", (e) => {
+      if (drawing) {
+        drawing = false;
+        collectedPoints = [];
+      }
+    });
   }
 
   function getPointerPos(e) {
     const rect = canvas.getBoundingClientRect();
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height)
     };
   }
 
   function clearWhiteboard() {
+    console.log("🧹 Очистка доски");
     context.clearRect(0, 0, canvas.width, canvas.height);
     socket.emit("whiteboardClear");
   }
@@ -114,61 +166,91 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const controlsDiv = document.createElement("div");
     controlsDiv.id = "whiteboard-controls";
-    controlsDiv.style.position = "absolute";
-    controlsDiv.style.bottom = "16px";
-    controlsDiv.style.left = "50%";
-    controlsDiv.style.transform = "translateX(-50%)";
-    controlsDiv.style.display = "flex";
-    controlsDiv.style.gap = "8px";
-    controlsDiv.style.background = "rgba(0,0,0,0.8)";
-    controlsDiv.style.padding = "12px";
-    controlsDiv.style.borderRadius = "8px";
-    controlsDiv.style.zIndex = "100";
+    controlsDiv.style.cssText = `
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      background: rgba(0,0,0,0.85);
+      padding: 12px 16px;
+      border-radius: 12px;
+      z-index: 100;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    `;
 
     const clearBtn = document.createElement("button");
-    clearBtn.textContent = "Очистить";
-    clearBtn.style.padding = "8px 12px";
-    clearBtn.style.background = "#444";
-    clearBtn.style.color = "white";
-    clearBtn.style.border = "none";
-    clearBtn.style.borderRadius = "4px";
-    clearBtn.style.cursor = "pointer";
+    clearBtn.textContent = "🧹 Очистить";
+    clearBtn.style.cssText = `
+      padding: 8px 12px;
+      background: #ff4444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    `;
+    clearBtn.addEventListener("mouseenter", () => clearBtn.style.background = "#cc0000");
+    clearBtn.addEventListener("mouseleave", () => clearBtn.style.background = "#ff4444");
     clearBtn.addEventListener("click", clearWhiteboard);
     controlsDiv.appendChild(clearBtn);
 
     const toolBtn = document.createElement("button");
-    toolBtn.textContent = "Кисть";
-    toolBtn.style.padding = "8px 12px";
-    toolBtn.style.background = "#444";
-    toolBtn.style.color = "white";
-    toolBtn.style.border = "none";
-    toolBtn.style.borderRadius = "4px";
-    toolBtn.style.cursor = "pointer";
+    toolBtn.textContent = "🖌️ Кисть";
+    toolBtn.style.cssText = `
+      padding: 8px 12px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    `;
     toolBtn.addEventListener("click", () => {
       currentTool = currentTool === "brush" ? "eraser" : "brush";
-      toolBtn.textContent = currentTool === "brush" ? "Кисть" : "Ластик";
+      toolBtn.textContent = currentTool === "brush" ? "🖌️ Кисть" : "🧽 Ластик";
+      toolBtn.style.background = currentTool === "brush" ? "#4CAF50" : "#ff9800";
     });
     controlsDiv.appendChild(toolBtn);
+
+    const colorLabel = document.createElement("span");
+    colorLabel.textContent = "Цвет:";
+    colorLabel.style.cssText = "color: white; display: flex; align-items: center; margin-left: 8px;";
+    controlsDiv.appendChild(colorLabel);
 
     const colorInput = document.createElement("input");
     colorInput.type = "color";
     colorInput.value = currentColor;
-    colorInput.style.width = "40px";
-    colorInput.style.height = "36px";
-    colorInput.style.cursor = "pointer";
+    colorInput.style.cssText = `
+      width: 40px;
+      height: 36px;
+      cursor: pointer;
+      border: 2px solid white;
+      border-radius: 6px;
+    `;
     colorInput.addEventListener("change", (e) => {
       currentColor = e.target.value;
+      console.log("🎨 Цвет изменен:", currentColor);
     });
     controlsDiv.appendChild(colorInput);
+
+    const thicknessLabel = document.createElement("span");
+    thicknessLabel.textContent = "Толщина:";
+    thicknessLabel.style.cssText = "color: white; display: flex; align-items: center; margin-left: 12px;";
+    controlsDiv.appendChild(thicknessLabel);
 
     const thicknessInput = document.createElement("input");
     thicknessInput.type = "range";
     thicknessInput.min = "1";
     thicknessInput.max = "20";
     thicknessInput.value = lineWidth;
-    thicknessInput.style.width = "100px";
+    thicknessInput.style.cssText = "width: 100px; cursor: pointer;";
     thicknessInput.addEventListener("input", (e) => {
       lineWidth = parseInt(e.target.value);
+      console.log("📏 Толщина изменена:", lineWidth);
     });
     controlsDiv.appendChild(thicknessInput);
 
@@ -184,10 +266,12 @@ document.addEventListener("DOMContentLoaded", () => {
     whiteboardOpened = !whiteboardOpened;
 
     if (whiteboardOpened) {
+      console.log("✏️ Открываем доску");
       whiteboardContainer.style.display = "block";
-      updateCanvasSize();
+      setTimeout(() => updateCanvasSize(), 100);
       socket.emit("whiteboardOpen");
     } else {
+      console.log("✏️ Закрываем доску");
       whiteboardContainer.style.display = "none";
       socket.emit("whiteboardClose");
     }
@@ -196,8 +280,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const whiteboardButton = document.getElementById("whiteboardButton");
   if (whiteboardButton) {
     whiteboardButton.addEventListener("click", toggleWhiteboard);
+  } else {
+    console.error("❌ Кнопка whiteboardButton не найдена");
   }
 
+  // Socket события
   socket.on("whiteboardDraw", (data) => {
     if (!data || !data.points || data.points.length === 0) return;
 
@@ -210,11 +297,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     context.strokeStyle = data.tool === "eraser" ? "#FFFFFF" : data.color;
     context.lineWidth = data.lineWidth;
+    context.lineCap = "round";
+    context.lineJoin = "round";
     context.stroke();
   });
 
   socket.on("whiteboardClear", () => {
     if (context && canvas) {
+      console.log("🧹 Получено событие очистки доски");
       context.clearRect(0, 0, canvas.width, canvas.height);
     }
   });

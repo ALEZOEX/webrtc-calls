@@ -40,12 +40,17 @@ let joined = false;
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 5;
 
-function tryJoin() {
+// ✅ ИСПРАВЛЕНИЕ #6: tryJoin теперь асинхронная и ждет поток ПЕРЕД join-room
+async function tryJoin() {
   if (!joined && socketReady && peerReady && peer && peer.id) {
     joined = true;
-    console.log("🚀 Отправляем join-room:", { roomId: ROOM_ID, peerId: peer.id, userName });
+    console.log("🚀 Получаем доступ к медиа перед join-room");
+    
+    // КРИТИЧНО: Сначала получаем медиапоток
+    await initLocalStream();
+    
+    console.log("📡 Отправляем join-room:", { roomId: ROOM_ID, peerId: peer.id, userName });
     socket.emit("join-room", ROOM_ID, peer.id, userName);
-    initLocalStream();
   } else {
     console.log('⏳ Ожидание готовности:', { socketReady, peerReady, joined, hasPeer: !!peer, peerId: peer?.id });
   }
@@ -91,17 +96,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Инициализация Socket.IO
+  // ✅ ИСПРАВЛЕНИЕ #2: Инициализация Socket.IO + сохраняем в window
   socket = io(window.location.origin, {
-    transports: ["polling"], // Принудительно используем polling — надежнее на Render
+    transports: ["polling"],
     reconnection: true,
     reconnectionAttempts: 10,
     reconnectionDelay: 2000,
     timeout: 30000
   });
 
+  window.socket = socket; // ← КРИТИЧНО для whiteboard.js!
+
   socket.on('connect', () => {
-    console.log('✅ Socket.IO подключен');
+    console.log('✅ Socket.IO подключен:', socket.id);
     socketReady = true;
     reconnectAttempts = 0;
     tryJoin();
@@ -134,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
   peer.on("call", handleIncomingCall);
 
   peer.on("open", (id) => {
-    log("PeerJS подключен: " + id);
+    log("✅ PeerJS подключен: " + id);
     participants[id] = userName;
     peerReady = true;
     reconnectAttempts = 0;
@@ -147,7 +154,10 @@ document.addEventListener("DOMContentLoaded", () => {
       reconnectAttempts++;
       if (reconnectAttempts < maxReconnectAttempts) {
         setTimeout(() => {
-          if (peer && peer.disconnected) peer.reconnect();
+          if (peer && peer.disconnected) {
+            console.log("🔄 Переподключаем PeerJS...");
+            peer.reconnect();
+          }
         }, Math.min(2000 * reconnectAttempts, 15000));
       }
     }
@@ -157,15 +167,20 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("🔌 PeerJS отключен");
     peerReady = false;
     setTimeout(() => {
-      if (peer && !peer.destroyed) peer.reconnect();
+      if (peer && !peer.destroyed) {
+        console.log("🔄 Переподключаем PeerJS...");
+        peer.reconnect();
+      }
     }, 1000);
   });
 
   // Socket события
   socket.on("room-users", (users) => {
-    console.log("room-users:", users);
+    console.log("📥 room-users:", users);
     users.forEach(({ userId, userName: uName }) => {
       participants[userId] = uName || "Участник";
+      if (userId === peer?.id) return; // Не звоним сами себе
+      
       if (myVideoStream) {
         setTimeout(() => connectToNewUser(userId, myVideoStream, participants[userId]), 300);
       } else {
@@ -175,11 +190,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   socket.on("user-list", (list) => {
-    console.log("user-list:", list);
+    console.log("📋 user-list:", list);
   });
 
   socket.on("user-connected", (userId, connectedUserName) => {
-    console.log("user-connected:", userId, connectedUserName);
+    console.log("👤 user-connected:", userId, connectedUserName);
     participants[userId] = connectedUserName;
     if (userId === peer?.id) return;
     
@@ -191,6 +206,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   socket.on("user-disconnected", (userId) => {
+    console.log("👋 user-disconnected:", userId);
     if (calls[userId]) {
       calls[userId].close();
       delete calls[userId];
@@ -200,6 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   socket.on("screenShareStopped", (initiatorPeerId) => {
+    console.log("🖥️ screenShareStopped:", initiatorPeerId);
     removeVideoContainerByPeerId(initiatorPeerId + "-screen");
   });
 
@@ -254,7 +271,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function removeVideoContainerByPeerId(peerId) {
     const c = document.querySelector(`.video-container[data-peer-id="${peerId}"]`);
-    if (c) c.remove();
+    if (c) {
+      console.log("🗑️ Удаляем контейнер:", peerId);
+      c.remove();
+    }
   }
 
   function createVideoElement() {
@@ -297,7 +317,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const tryPlay = () => {
       const p = video.play();
-      if (p) p.catch(() => { if (!isLocal && unmuteOverlay) showTapToUnmute(container, video); });
+      if (p) p.catch((err) => { 
+        console.warn("⚠️ Не удалось автовоспроизвести видео:", err);
+        if (!isLocal && unmuteOverlay) showTapToUnmute(container, video); 
+      });
     };
 
     if (video.readyState >= 2) tryPlay();
@@ -308,88 +331,223 @@ document.addEventListener("DOMContentLoaded", () => {
     if (container.querySelector(".tap-to-unmute")) return;
     const ov = document.createElement("div");
     ov.className = "tap-to-unmute";
-    ov.style.cssText = `position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);color:#fff;font-weight:600;cursor:pointer;z-index:50;`;
-    ov.textContent = "Нажмите, чтобы включить звук/видео";
+    ov.style.cssText = `position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);color:#fff;font-weight:600;cursor:pointer;z-index:50;font-size:18px;text-align:center;padding:20px;`;
+    ov.innerHTML = "🔇<br>Нажмите, чтобы включить звук/видео";
     ov.addEventListener("click", async () => {
-      try { video.muted = false; await video.play(); ov.remove(); } catch (e) {}
+      try { 
+        video.muted = false; 
+        await video.play(); 
+        ov.remove(); 
+      } catch (e) {
+        console.error("Не удалось воспроизвести:", e);
+      }
     });
     container.appendChild(ov);
   }
 
+  // ✅ ИСПРАВЛЕНИЕ #5: Улучшенная connectToNewUser с обработкой зависших соединений
   function connectToNewUser(userId, stream, connectedUserName) {
-    if (!userId || !stream || !peer || peer.disconnected || calls[userId]) return;
+    if (!userId || !stream || !peer || peer.disconnected) {
+      console.warn("⚠️ Невозможно подключиться:", { userId, hasStream: !!stream, hasPeer: !!peer, peerDisconnected: peer?.disconnected });
+      return;
+    }
+
+    // Проверяем, не истек ли старый вызов
+    if (calls[userId]) {
+      const existingCall = calls[userId];
+      const pc = existingCall.peerConnection || existingCall._pc;
+      
+      // Если соединение уже активно - не звоним повторно
+      if (pc && (pc.connectionState === 'connected' || pc.connectionState === 'connecting')) {
+        console.log(`✅ Уже подключены к ${userId} (${pc.connectionState})`);
+        return;
+      } else {
+        // Старый вызов завис - закрываем его
+        console.log(`⚠️ Закрываем зависший вызов к ${userId}`);
+        existingCall.close();
+        delete calls[userId];
+      }
+    }
 
     try {
+      console.log(`📞 Звоним ${userId} (${connectedUserName})`);
       const call = peer.call(userId, stream, { metadata: { userName } });
-      if (!call) return;
+      if (!call) {
+        console.error("❌ peer.call вернул null");
+        return;
+      }
 
       const pc = call.peerConnection || call._pc;
       if (pc) {
-        pc.addEventListener('iceconnectionstatechange', () => console.log('ICE', userId, pc.iceConnectionState));
-        pc.addEventListener('connectionstatechange', () => console.log('PC', userId, pc.connectionState));
+        pc.addEventListener('iceconnectionstatechange', () => {
+          console.log(`🧊 ICE ${userId}:`, pc.iceConnectionState);
+          // Если соединение не установилось - пробуем заново
+          if (pc.iceConnectionState === 'failed') {
+            console.error(`❌ ICE failed для ${userId}, переподключаемся через 2 сек...`);
+            delete calls[userId];
+            setTimeout(() => connectToNewUser(userId, stream, connectedUserName), 2000);
+          }
+        });
+        pc.addEventListener('connectionstatechange', () => {
+          console.log(`🔗 Connection ${userId}:`, pc.connectionState);
+        });
       }
 
       const video = createVideoElement();
-      call.on("stream", (s) => addVideoStream(video, s, false, connectedUserName, userId));
-      call.on("error", (err) => { console.error("Call error:", err); call.close(); });
-      call.on("close", () => removeVideoContainerByPeerId(userId));
-
-      calls[userId] = call;
-    } catch (e) { console.error(e); }
-  }
-
-  async function initLocalStream() {
-    if (myVideoStream) return;
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: isMobile ? { width: 640, height: 480, facingMode: "user" } : { width: 1280, height: 720, facingMode: "user" },
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      
+      call.on("stream", (remoteStream) => {
+        console.log("📹 Получен поток от", userId);
+        addVideoStream(video, remoteStream, false, connectedUserName, userId, { unmuteOverlay: true });
+      });
+      
+      call.on("error", (err) => { 
+        console.error("❌ Ошибка вызова:", err); 
+        call.close(); 
+        delete calls[userId];
+      });
+      
+      call.on("close", () => {
+        console.log("📴 Вызов закрыт:", userId);
+        removeVideoContainerByPeerId(userId);
+        delete calls[userId];
       });
 
-      myVideoStream = stream;
-
-      // Выключаем видео по умолчанию
-      const vt = stream.getVideoTracks()[0];
-      if (vt) vt.enabled = false;
-      const iconV = stopVideo?.querySelector("i");
-      if (iconV) iconV.className = "fa fa-video-slash";
-
-      addVideoStream(myVideo, stream, true, userName + " (Вы)");
-
-      // Подключаемся к отложенным
-      for (const uid of pendingToConnect) {
-        connectToNewUser(uid, myVideoStream, participants[uid] || "Участник");
-        pendingToConnect.delete(uid);
-      }
-    } catch (err) {
-      console.error(err);
-      log("Нет доступа к камере/микрофону.", 'warn');
+      calls[userId] = call;
+    } catch (e) { 
+      console.error("❌ Исключение в connectToNewUser:", e); 
     }
   }
 
-  function handleIncomingCall(call) {
-    if (calls[call.peer]) return;
+  // ✅ ИСПРАВЛЕНИЕ #4: Улучшенная handleIncomingCall с ожиданием потока
+  async function handleIncomingCall(call) {
+    console.log("📞 Входящий вызов от:", call.peer, "Метаданные:", call.metadata);
+    
+    if (calls[call.peer]) {
+      console.warn("⚠️ Вызов от", call.peer, "уже существует, игнорируем дубликат");
+      return;
+    }
+    
     calls[call.peer] = call;
 
+    // Обработка демонстрации экрана
     if (call.metadata?.type === "screen-share") {
       call.answer();
       const vid = createVideoElement();
       const cid = call.peer + "-screen";
-      call.on("stream", (s) => addVideoStream(vid, s, false, "🖥️ Демонстрация", cid, { unmuteOverlay: true }));
+      call.on("stream", (s) => {
+        console.log("🖥️ Получен поток демонстрации от", call.peer);
+        addVideoStream(vid, s, false, "🖥️ Демонстрация экрана", cid, { unmuteOverlay: true });
+      });
       call.on("close", () => removeVideoContainerByPeerId(cid));
       return;
     }
 
-    call.answer(myVideoStream || undefined);
+    // КРИТИЧНО: Ждем, пока myVideoStream будет готов
+    if (!myVideoStream) {
+      console.warn("⚠️ Входящий вызов, но поток еще не готов. Ждем...");
+      let attempts = 0;
+      await new Promise(resolve => {
+        const checkStream = setInterval(() => {
+          attempts++;
+          if (myVideoStream) {
+            console.log("✅ Поток готов после", attempts * 100, "мс");
+            clearInterval(checkStream);
+            resolve();
+          }
+          if (attempts > 50) { // 5 секунд максимум
+            console.error("❌ Таймаут ожидания потока");
+            clearInterval(checkStream);
+            resolve();
+          }
+        }, 100);
+      });
+    }
+
+    // Отвечаем на вызов
+    call.answer(myVideoStream);
+    console.log("✅ Ответили на вызов от", call.peer);
+    
     const vid = createVideoElement();
     addVideoStream(vid, null, false, participants[call.peer] || "Участник", call.peer, { unmuteOverlay: true });
-    call.on("stream", (s) => addVideoStream(vid, s, false, participants[call.peer] || "Участник", call.peer, { unmuteOverlay: true }));
-    call.on("close", () => removeVideoContainerByPeerId(call.peer));
-    call.on("error", (e) => console.error(e));
+    
+    call.on("stream", (remoteStream) => {
+      console.log("📹 Получен поток от", call.peer);
+      addVideoStream(vid, remoteStream, false, participants[call.peer] || "Участник", call.peer, { unmuteOverlay: true });
+    });
+    
+    call.on("close", () => {
+      console.log("📴 Входящий вызов закрыт:", call.peer);
+      removeVideoContainerByPeerId(call.peer);
+      delete calls[call.peer];
+    });
+    
+    call.on("error", (e) => {
+      console.error("❌ Ошибка входящего вызова:", e);
+      delete calls[call.peer];
+    });
   }
 
-  // Кнопки
+  // ✅ Улучшенная initLocalStream (теперь возвращает промис)
+  async function initLocalStream() {
+    if (myVideoStream) {
+      console.log("✅ Медиапоток уже получен");
+      return myVideoStream;
+    }
+
+    try {
+      console.log("🎥 Запрашиваем доступ к камере/микрофону...");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: isMobile 
+          ? { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" } 
+          : { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+        audio: { 
+          echoCancellation: true, 
+          noiseSuppression: true, 
+          autoGainControl: true 
+        }
+      });
+
+      myVideoStream = stream;
+      console.log("✅ Медиапоток получен:", stream.getTracks().map(t => `${t.kind}: ${t.label}`));
+
+      // Выключаем видео по умолчанию
+      const vt = stream.getVideoTracks()[0];
+      if (vt) {
+        vt.enabled = false;
+        console.log("📹 Камера выключена по умолчанию");
+      }
+      
+      const iconV = stopVideo?.querySelector("i");
+      if (iconV) iconV.className = "fa fa-video-slash";
+
+      addVideoStream(myVideo, stream, true, userName + " (Вы)", peer?.id);
+
+      // Подключаемся к отложенным пользователям
+      if (pendingToConnect.size > 0) {
+        console.log("🔄 Подключаемся к отложенным пользователям:", Array.from(pendingToConnect));
+        for (const uid of pendingToConnect) {
+          connectToNewUser(uid, myVideoStream, participants[uid] || "Участник");
+          pendingToConnect.delete(uid);
+        }
+      }
+
+      return stream;
+    } catch (err) {
+      console.error("❌ Ошибка доступа к медиа:", err);
+      log("Нет доступа к камере/микрофону. Проверьте разрешения браузера.", 'warn');
+      
+      // Показываем предупреждение пользователю
+      const warning = document.createElement("div");
+      warning.style.cssText = "position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#ff4444;color:white;padding:15px 25px;border-radius:8px;z-index:9999;font-weight:600;";
+      warning.textContent = "⚠️ Нет доступа к камере/микрофону";
+      document.body.appendChild(warning);
+      setTimeout(() => warning.remove(), 5000);
+      
+      return null;
+    }
+  }
+
+  // Кнопки управления
   if (stopVideo) {
     stopVideo.addEventListener("click", () => {
       if (!myVideoStream) return;
@@ -398,6 +556,7 @@ document.addEventListener("DOMContentLoaded", () => {
         vt.enabled = !vt.enabled;
         const ic = stopVideo.querySelector("i");
         if (ic) ic.className = vt.enabled ? "fa fa-video" : "fa fa-video-slash";
+        console.log(vt.enabled ? "📹 Камера включена" : "📹 Камера выключена");
       }
     });
   }
@@ -410,19 +569,27 @@ document.addEventListener("DOMContentLoaded", () => {
         at.enabled = !at.enabled;
         const ic = muteButton.querySelector("i");
         if (ic) ic.className = at.enabled ? "fa fa-microphone" : "fa fa-microphone-slash";
+        console.log(at.enabled ? "🎤 Микрофон включен" : "🎤 Микрофон выключен");
       }
     });
   }
 
   async function startScreenShare() {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      console.log("🖥️ Запрашиваем демонстрацию экрана...");
+      const stream = await navigator.mediaDevices.getDisplayMedia({ 
+        video: { 
+          cursor: "always" 
+        } 
+      });
+      
       const cid = "screen-share-" + Date.now();
       localScreenShareContainerId = cid;
 
       const cont = document.createElement("div");
       cont.id = cid;
       cont.className = "video-container screen-share-container";
+      
       const vid = createVideoElement();
       vid.srcObject = stream;
       vid.muted = true;
@@ -432,19 +599,26 @@ document.addEventListener("DOMContentLoaded", () => {
       isScreenSharing = true;
       screenShareStream = stream;
       screenShareButton.innerHTML = '<i class="fa fa-stop-circle"></i>';
+      screenShareButton.style.background = "#ff4444";
 
+      console.log("✅ Демонстрация начата, отправляем всем участникам");
       for (let uid in calls) {
         try {
           const sc = peer.call(uid, stream, { metadata: { type: "screen-share" } });
           screenShareCalls[uid] = sc;
-        } catch (e) {}
+        } catch (e) {
+          console.error("❌ Ошибка отправки демонстрации:", e);
+        }
       }
 
       stream.getVideoTracks()[0].onended = stopScreenShare;
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error("❌ Ошибка демонстрации:", e); 
+    }
   }
 
   function stopScreenShare() {
+    console.log("🛑 Останавливаем демонстрацию");
     if (screenShareStream) {
       screenShareStream.getTracks().forEach(t => t.stop());
       screenShareStream = null;
@@ -460,6 +634,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     isScreenSharing = false;
     screenShareButton.innerHTML = '<i class="fa fa-desktop"></i>';
+    screenShareButton.style.background = "";
     socket.emit("screenShareStopped", peer.id);
   }
 
@@ -472,18 +647,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (inviteButton) {
     inviteButton.addEventListener("click", () => {
-      prompt("Скопируйте ссылку:", window.location.href.split('?')[0]);
+      const link = window.location.href.split('?')[0];
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(() => {
+          alert("✅ Ссылка скопирована в буфер обмена!");
+        }).catch(() => {
+          prompt("Скопируйте ссылку:", link);
+        });
+      } else {
+        prompt("Скопируйте ссылку:", link);
+      }
     });
   }
 
   if (exitConferenceBtn) {
     exitConferenceBtn.addEventListener("click", () => {
-      if (confirm("Выйти из конференции?")) window.location.href = "/";
+      if (confirm("Вы уверены, что хотите выйти из конференции?")) {
+        window.location.href = "/";
+      }
     });
   }
 
   window.addEventListener("beforeunload", () => {
+    console.log("👋 Выход из конференции");
     if (myVideoStream) myVideoStream.getTracks().forEach(t => t.stop());
+    if (screenShareStream) screenShareStream.getTracks().forEach(t => t.stop());
     socket.disconnect();
     peer.destroy();
   });
