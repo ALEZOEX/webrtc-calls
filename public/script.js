@@ -1,10 +1,10 @@
-"usestrict";
+"use strict";
 
 const currentUser = new URLSearchParams(window.location.search).get('userName') || 
                     prompt("Введите ваш никнейм:") || "Аноним";
 
 const peersRef = [];
-let userVideoAudio = { localUser: { video: true, audio: true } };
+let userVideoAudio = { localUser: { video: false, audio: true } }; // камера выключена!
 let userStream = null;
 
 const videoGrid = document.getElementById("video-grid");
@@ -28,22 +28,22 @@ async function initializeRoom() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { width: 1280, height: 720 },
-      audio:{ echoCancellation: true, noiseSuppression: true }
+      audio: { echoCancellation: true, noiseSuppression: true }
     });
 
     userStream = stream;
     myVideo.srcObject = stream;
     
     // ✅ КАМЕРА ВЫКЛЮЧЕНА ПО УМОЛЧАНИЮ
-    stream.getVideoTracks()[0].enabled= false;
+    stream.getVideoTracks()[0].enabled = false;
     
-    userVideoAudio.localUser = { video: false, audio: true }; // video: false!
+    userVideoAudio.localUser = { video: false, audio: true };
     
     addVideoStream(myVideo, true, currentUser, null);
     
     // Обновляем иконку кнопки
     const iconV = document.querySelector("#stopVideo i");
-    if(iconV) iconV.className = "fa fa-video-slash";
+    if (iconV) iconV.className = "fa fa-video-slash";
 
     socket.emit('BE-join-room', { 
       roomId: ROOM_ID, 
@@ -62,7 +62,7 @@ function setupSocketListeners(stream) {
   socket.on('FE-user-join', (users) => {
     console.log('📥 FE-user-join:', users);
     
-    users.forEach(({ userId, info}) => {
+    users.forEach(({ userId, info }) => {
       if (userId !== socket.id) {
         const peer = createPeer(userId, socket.id, stream);
         peer.userName = info.userName;
@@ -105,58 +105,67 @@ function setupSocketListeners(stream) {
     }
   });
 
-  // Пользователь вышел
   socket.on('FE-user-leave', ({ userId, userName }) => {
     console.log('👋 FE-user-leave:', userId, userName);
-const peerIdx = peersRef.findIndex(p => p.peerID === userId);
+    
+    const peerIdx = peersRef.findIndex(p => p.peerID === userId);
     
     if (peerIdx !== -1) {
       const peer = peersRef[peerIdx];
       
-      // Уничтожаем peer
       if (peer.peer && typeof peer.peer.destroy === 'function') {
         peer.peer.destroy();
       }
       
-      // Удаляем из массива
       peersRef.splice(peerIdx, 1);
-      
-      // Удаляем видео элемент
       removeVideoElement(userId);
       
-      // Удаляем из userVideoAudio
       if (userName && userVideoAudio[userName]) {
-        deleteuserVideoAudio[userName];
+        delete userVideoAudio[userName];
       }
       
-      // Пересчитываем размеры оставшихся блоков
       updateVideoSizes();
     }
   });
 
-// Переключение камеры/микрофона (УЛУЧШЕННАЯ ВЕРСИЯ)
   socket.on('FE-toggle-camera', ({ userId, switchTarget }) => {
     const peerIdx = peersRef.find(p => p.peerID === userId);
     
     if (peerIdx) {
       const userName = peerIdx.userName;
+      const container = document.querySelector(`[data-peer-id="${userId}"]`);
       
       if (switchTarget === 'video') {
-        userVideoAudio[userName].video= !userVideoAudio[userName].video;
+        userVideoAudio[userName].video = !userVideoAudio[userName].video;
         
-        // Обновляем UI
-        const container = document.querySelector(`[data-peer-id="${userId}"]`);
         if (container) {
-          const placeholder = container.querySelector('.video-placeholder');
-          if (placeholder) {
-            placeholder.style.display = userVideoAudio[userName].video ? 'none' : 'flex';
+          const avatar = container.querySelector('.video-avatar');
+          const video = container.querySelector('video');
+          
+          if (userVideoAudio[userName].video) {
+            // Камера включена
+            if (avatar) avatar.classList.add('hidden');
+            if (video) video.classList.remove('camera-off');
+          } else {
+            // Камера выключена
+            if (avatar) avatar.classList.remove('hidden');
+            if (video) video.classList.add('camera-off');
           }
         }
       } else {
+        // АУДИО
         userVideoAudio[userName].audio = !userVideoAudio[userName].audio;
         
-        // Можно добавить индикатор "микрофон выключен"
-        console.log(`🎤 ${userName}: микрофон${userVideoAudio[userName].audio ? 'включен' : 'выключен'}`);
+        if (container) {
+          const micIndicator = container.querySelector('.video-mic-indicator');
+          if (micIndicator) {
+            if (userVideoAudio[userName].audio) {
+              micIndicator.classList.remove('show');
+            } else {
+              micIndicator.classList.add('show');
+            }
+          }
+        }
       }
     }
   });
@@ -181,7 +190,7 @@ function createPeer(userId, caller, stream) {
       userToCall: userId,
       from: caller,
       signal
-});
+    });
   });
 
   peer.on('stream', (remoteStream) => {
@@ -203,7 +212,7 @@ function createPeer(userId, caller, stream) {
 function addPeer(incomingSignal, callerId, stream) {
   const peer = new SimplePeer({
     initiator: false,
-trickle: false,
+    trickle: false,
     stream: stream,
     config: {
       iceServers: [
@@ -224,7 +233,25 @@ trickle: false,
     video.srcObject = remoteStream;
     video.autoplay = true;
     video.playsInline = true;
-    addVideoStream(video, false, peer.userName, callerId);
+    
+    // ВАЖНО: передаем информацию о статусе камеры
+    const isLocal = false;
+    const hasVideo = userVideoAudio[peer.userName]?.video ?? true;
+    
+    addVideoStream(video, isLocal, peer.userName, callerId);
+    
+    // Если камера выключена - сразу обновляем UI
+    if (!hasVideo) {
+      setTimeout(() => {
+        const container = document.querySelector(`[data-peer-id="${callerId}"]`);
+        if (container) {
+          const avatar = container.querySelector('.video-avatar');
+          const videoEl = container.querySelector('video');
+          if (avatar) avatar.classList.remove('hidden');
+          if (videoEl) videoEl.classList.add('camera-off');
+        }
+      }, 100);
+    }
   });
 
   peer.on('error', (err) => {
@@ -241,97 +268,160 @@ function addVideoStream(video, isLocal, userName, peerId) {
   container.classList.add("video-container");
   if (peerId) container.setAttribute("data-peer-id", peerId);
 
-  // Добавляем класс для правильного размера
-  const peerCount = document.querySelectorAll('.video-container').length;
-  container.classList.add(`width-peer${peerCount > 8 ? '' : peerCount}`);
-
-  const label = document.createElement("div");
-  label.className = "video-placeholder";
-  label.textContent = isLocal ? `${userName} (Вы)` : userName;
+  // 1. АВАТАР (первая буква имени)
+  const avatar = document.createElement("div");
+  avatar.className = "video-avatar";
+  avatar.setAttribute("data-color", getAvatarColor(userName));
+  avatar.textContent = getInitial(userName);
   
-  // ВАЖНО: показываем label только если видео выключено
-  if (!isLocal && userVideoAudio[userName]&& !userVideoAudio[userName].video) {
-    label.style.display = 'flex';
-  } else {
-    label.style.display = 'none';
+  // Если камера включена - сразу скрываем аватар
+  const cameraEnabled = isLocal ? userVideoAudio.localUser.video : true;
+  if (cameraEnabled) {
+    avatar.classList.add('hidden');
   }
   
-  container.appendChild(label);
+  container.appendChild(avatar);
 
-  // Обертка для видео
+  // 2. VIDEO WRAPPER
   const wrapper = document.createElement("div");
   wrapper.className = "video-wrapper";
- wrapper.style.position = "relative";
-  wrapper.style.width = "100%";
-  wrapper.style.height = "100%";
   
   video.style.width = "100%";
   video.style.height = "100%";
   video.style.objectFit = "cover";
   
+  // Если камера выключена - затемняем видео
+  if (!cameraEnabled) {
+    video.classList.add('camera-off');
+  }
+  
   wrapper.appendChild(video);
   container.appendChild(wrapper);
+
+  // 3. ИМЯ ПОЛЬЗОВАТЕЛЯ (внизу слева)
+  const nameLabel = document.createElement("div");
+  nameLabel.className = "video-name";
+  if (isLocal) {
+    nameLabel.classList.add('local-user');
+  }
+  nameLabel.textContent = isLocal ? `${userName}` : userName;
+  container.appendChild(nameLabel);
+  
+  // 4. ИНДИКАТОР МИКРОФОНА (опционально)
+  const micIndicator = document.createElement("div");
+  micIndicator.className = "video-mic-indicator";
+  micIndicator.innerHTML = '<i class="fa fa-microphone-slash"></i> Muted';
+  container.appendChild(micIndicator);
   
   videoGrid.appendChild(container);
   
-  // КРИТИЧНО: принудительно воспроизводим видео
+  // КРИТИЧНО: обновляем сетку ПОСЛЕ добавления
+  updateGridLayout();
+  
   video.play().catch(err => {
     console.warn("⚠️ Не удалось автовоспроизвести:", err);
   });
 }
 
 function removeVideoElement(peerId) {
-  const container= document.querySelector(`[data-peer-id="${peerId}"]`);
-  if (container) container.remove();
+  const container = document.querySelector(`[data-peer-id="${peerId}"]`);
+  if (container) {
+    container.remove();
+    updateGridLayout();
+  }
 }
 
-// Добавьте функцию пересчета размеров
-function updateVideoSizes() {
+// ==========================================
+// ДИНАМИЧЕСКОЕ ОБНОВЛЕНИЕ СЕТКИ
+// ==========================================
+
+function updateGridLayout() {
   const containers = document.querySelectorAll('.video-container');
   const count = containers.length;
   
-  containers.forEach((container, index) => {
-    // Удаляем старые классы
-    container.classList.remove(...Array.from(container.classList).filter(c => c.startsWith('width-peer')));
-    
-    // Добавляем новый класс
-    container.classList.add(`width-peer${count > 8 ? '' : count}`);
-  });
+  // Убираем все старые классы
+  videoGrid.classList.remove(
+    'peers-1', 'peers-2', 'peers-3', 'peers-4', 
+    'peers-5', 'peers-6', 'peers-7', 'peers-8', 
+    'peers-9', 'peers-10', 'peers-11', 'peers-12',
+    'peers-13', 'peers-14', 'peers-15', 'peers-16',
+    'peers-many'
+  );
+  
+  // Добавляем новый класс в зависимости от количества
+  if (count <= 16) {
+    videoGrid.classList.add(`peers-${count}`);
+  } else {
+    videoGrid.classList.add('peers-many');
+  }
+  
+  console.log(`🎨 Обновлена сетка: ${count} участников`);
 }
 
-// Обновите обработчик кнопки камеры:
+// ==========================================
+// УТИЛИТЫ ДЛЯ АВАТАРОВ
+// ==========================================
+
+// Генерация цвета по имени (консистентно)
+function getAvatarColor(userName) {
+  let hash = 0;
+  for (let i = 0; i < userName.length; i++) {
+    hash = userName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return (Math.abs(hash) % 8) + 1; // Возвращает число от 1 до 8
+}
+
+// Получение первой буквы имени
+function getInitial(userName) {
+  if (!userName || userName.trim() === '') return '?';
+  return userName.trim()[0].toUpperCase();
+}
+
+// ==========================================
+// УПРАВЛЕНИЕ КАМЕРОЙ
+// ==========================================
+
 document.getElementById("stopVideo")?.addEventListener("click", () => {
   if (!userStream) return;
   
   const videoTrack = userStream.getVideoTracks()[0];
   if (videoTrack) {
     videoTrack.enabled = !videoTrack.enabled;
-    
-   // Обновляем состояние
     userVideoAudio.localUser.video = videoTrack.enabled;
     
-    // Обновляем иконку
+    // Обновляем иконку кнопки
     const icon = document.querySelector("#stopVideo i");
     if (icon) {
       icon.className = videoTrack.enabled ? "fa fa-video" : "fa fa-video-slash";
     }
     
-    // Показываем/скрываем placeholder
-    const myContainer = document.querySelector(`.video-container[data-peer-id="${socket.id}"]`);
+    // Обновляем UI контейнера
+    const myContainer = videoGrid.querySelector('.video-container:first-child');
     if (myContainer) {
-      const placeholder = myContainer.querySelector('.video-placeholder');
-      if (placeholder) {
-        placeholder.style.display = videoTrack.enabled ? 'none' : 'flex';
+      const avatar = myContainer.querySelector('.video-avatar');
+      const video = myContainer.querySelector('video');
+      
+      if (videoTrack.enabled) {
+        // Камера включена: скрываем аватар, показываем видео
+        if (avatar) avatar.classList.add('hidden');
+        if (video) video.classList.remove('camera-off');
+      } else {
+        // Камера выключена: показываем аватар, скрываем видео
+        if (avatar) avatar.classList.remove('hidden');
+        if (video) video.classList.add('camera-off');
       }
     }
     
-    // Уведомляем других участников
     socket.emit('BE-toggle-camera-audio', { 
       roomId: ROOM_ID, 
       switchTarget: 'video' 
     });
   }
 });
+
+// ==========================================
+// УПРАВЛЕНИЕ МИКРОФОНОМ
+// ==========================================
 
 document.getElementById("muteButton")?.addEventListener("click", () => {
   if (!userStream) return;
@@ -349,90 +439,20 @@ document.getElementById("muteButton")?.addEventListener("click", () => {
     const icon = document.querySelector("#muteButton i");
     if (icon) {
       icon.className = audioTrack.enabled ? "fa fa-microphone" : "fa fa-microphone-slash";
-}
-  }
-});
-
-document.getElementById("exit-conference-btn")?.addEventListener("click", () => {
-  if (confirm("Выйти из конференции?")) {
-    socket.emit('BE-leave-room', { roomId: ROOM_ID });
-    window.location.href = "/";
-  }
-});
-
-const chatSection =document.querySelector(".main__right");
-if (chatSection) chatSection.style.display = "none";
-
-document.getElementById("toggleChat")?.addEventListener("click", () => {
-  if (chatSection) {
-    chatSection.style.display = chatSection.style.display === "none" ? "flex" : "none";
-  }
-});
-
-socket.on('FE-receive-message', ({ msg, sender }) => {
-  const messagesContainer = document.querySelector(".messages");
-  if (messagesContainer) {
-    const div = document.createElement("div");
-    div.classList.add("message");
-    div.innerHTML = `<strong>${sender}:</strong> ${msg}`;
-   messagesContainer.appendChild(div);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  }
-});
-
-document.getElementById("send")?.addEventListener("click", () => {
-  const input = document.getElementById("chat_message");
-  const text = input?.value.trim();
-  if (text) {
-    socket.emit('BE-send-message', { 
-roomId: ROOM_ID, 
-      msg: text, 
-      sender: currentUser 
-    });
-    input.value = "";
-  }
-});
-
-document.getElementById("chat_message")?.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    document.getElementById("send")?.click();
-  }
-});
-
-// Emoji кнопки (ИСПРАВЛЕННАЯ ВЕРСИЯ)
-document.querySelectorAll(".emoji-button").forEach(btn => {
-  btn.addEventListener("click", (e) => {
-    e.preventDefault();
-    const emoji = btn.getAttribute("data-emoji");
-    const input =document.getElementById("chat_message");
-    
-    if (input) {
-      // Вставляем эмодзи в конец текста
-      input.value += emoji;
-      input.focus(); // Возвращаем фокус в поле ввода
-    } else {
-      // Если нет поля ввода -отправляем сразу как сообщение
-      socket.emit('BE-send-message', { 
-        roomId: ROOM_ID, 
-        msg: emoji, 
-        sender: currentUser 
-      });
     }
-  });
+  }
 });
 
-//==========================================
+// ==========================================
 // ДЕМОНСТРАЦИЯ ЭКРАНА
 // ==========================================
 
 let screenShareStream = null;
-let screenSharePeer = null;
 let isScreenSharing = false;
 
 document.getElementById("screenShareButton")?.addEventListener("click", () => {
   if (!isScreenSharing) {
-startScreenShare();
+    startScreenShare();
   } else {
     stopScreenShare();
   }
@@ -444,7 +464,7 @@ async function startScreenShare() {
     
     const stream = await navigator.mediaDevices.getDisplayMedia({ 
       video: { 
-       cursor: "always",
+        cursor: "always",
         displaySurface: "monitor"
       },
       audio: false
@@ -471,11 +491,10 @@ async function startScreenShare() {
     }
     
     // Отправляем поток всем участникам
-    const screenTrack =stream.getVideoTracks()[0];
+    const screenTrack = stream.getVideoTracks()[0];
     
-    peersRef.forEach(({ peer, peerID }) => {
-      if (peer && peer.streams && peer.streams[0]) {
-        // Заменяем видео трек на трек демонстрации
+    peersRef.forEach(({ peer }) => {
+      if (peer && peer._pc) {
         const sender = peer._pc.getSenders().find(s => s.track && s.track.kind === 'video');
         if (sender) {
           sender.replaceTrack(screenTrack).catch(err => {
@@ -485,7 +504,7 @@ async function startScreenShare() {
       }
     });
     
-    // Обрабатываем остановку демонстрации (пользователь нажал "Прекратить показ")
+    // Обрабатываем остановку демонстрации
     screenTrack.onended = () => {
       console.log('🖥️ Демонстрация остановлена пользователем');
       stopScreenShare();
@@ -493,12 +512,10 @@ async function startScreenShare() {
     
     console.log('✅ Демонстрация экрана началась');
     
-} catch (err) {
+  } catch (err) {
     console.error('❌ Ошибка демонстрации экрана:', err);
     if (err.name === 'NotAllowedError') {
-      alert('Вы отклонили запрос на демонстрацию экрана');
-    } else {
-      alert('Не удалось начать демонстрациюэкрана');
+      showNotification('⚠️ Вы отклонили запрос на демонстрацию', 'error');
     }
   }
 }
@@ -519,7 +536,7 @@ function stopScreenShare() {
     const videoTrack = userStream.getVideoTracks()[0];
     
     peersRef.forEach(({ peer }) => {
-      if (peer && peer.streams && peer.streams[0]) {
+      if (peer && peer._pc) {
         const sender = peer._pc.getSenders().find(s => s.track && s.track.kind === 'video');
         if (sender) {
           sender.replaceTrack(videoTrack).catch(err => {
@@ -536,9 +553,11 @@ function stopScreenShare() {
     btn.style.background = "";
     const icon = btn.querySelector("i");
     if (icon) icon.className = "fa fa-desktop";
-}
+  }
   
   isScreenSharing = false;
+  // КРИТИЧНО: обновляем сетку после удаления экрана
+  updateGridLayout();
 }
 
 // ==========================================
@@ -546,32 +565,28 @@ function stopScreenShare() {
 // ==========================================
 
 document.getElementById("inviteButton")?.addEventListener("click", () => {
-  // Формируем ссылку БЕЗ параметра userName (чтобы каждый ввел своё имя)
+  // Формируем ссылку БЕЗ параметра userName
   const roomUrl = `${window.location.origin}/room/${ROOM_ID}`;
   
-  // Проверяем поддержку Clipboard API
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(roomUrl)
       .then(() => {
-       showNotification('✅ Ссылка скопирована!', 'success');
+        showNotification('✅ Ссылка скопирована!', 'success');
       })
       .catch(err => {
         console.error('Ошибка копирования:', err);
         fallbackCopyLink(roomUrl);
       });
   } else {
-    // Fallback для старых браузеров
     fallbackCopyLink(roomUrl);
   }
 });
 
-// Резервный метод копирования
 function fallbackCopyLink(text) {
   const textarea = document.createElement('textarea');
   textarea.value = text;
   textarea.style.position = 'fixed';
   textarea.style.top = '-9999px';
-  textarea.style.left = '-9999px';
   document.body.appendChild(textarea);
   textarea.select();
   
@@ -579,21 +594,20 @@ function fallbackCopyLink(text) {
     document.execCommand('copy');
     showNotification('✅ Ссылка скопирована!', 'success');
   } catch (err) {
-    // Если и это не сработало - показываем в promptprompt('Скопируйте ссылку вручную:', text);
+    prompt('Скопируйте ссылку вручную:', text);
   }
   
   document.body.removeChild(textarea);
 }
 
-// Уведомление (toast)
 function showNotification(message, type = 'info') {
   const notification = document.createElement('div');
   notification.style.cssText = `
-    position:fixed;
+    position: fixed;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: ${type === 'success' ? '#4CAF50' : '#2196F3'};
+    background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#ff4444' : '#2196F3'};
     color: white;
     padding: 15px 30px;
     border-radius: 8px;
@@ -601,11 +615,10 @@ function showNotification(message, type = 'info') {
     font-weight: 600;
     z-index: 10000;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-animation: slideDown 0.3s ease;
+    animation: slideDown 0.3s ease;
   `;
   notification.textContent = message;
   
-  // Добавляем анимацию
   const style = document.createElement('style');
   style.textContent = `
     @keyframes slideDown {
@@ -623,26 +636,104 @@ animation: slideDown 0.3s ease;
   
   document.body.appendChild(notification);
   
-  // Автоматически удаляем через 3 секунды
   setTimeout(() => {
     notification.style.opacity = '0';
     notification.style.transition = 'opacity 0.3s ease';
     setTimeout(() => {
-      document.body.removeChild(notification);
-      document.head.removeChild(style);
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
     }, 300);
   }, 3000);
 }
 
+// ==========================================
+// ВЫХОД ИЗ КОНФЕРЕНЦИИ
+// ==========================================
+
+document.getElementById("exit-conference-btn")?.addEventListener("click", () => {
+  if (confirm("Выйти из конференции?")) {
+    socket.emit('BE-leave-room', { roomId: ROOM_ID });
+    window.location.href = "/";
+  }
+});
+
+// ==========================================
+// ЧАТ
+// ==========================================
+
+const chatSection = document.querySelector(".main__right");
+if (chatSection) chatSection.style.display = "none";
+
+document.getElementById("toggleChat")?.addEventListener("click", () => {
+  if (chatSection) {
+    chatSection.style.display = chatSection.style.display === "none" ? "flex" : "none";
+  }
+});
+
+socket.on('FE-receive-message', ({ msg, sender }) => {
+  const messagesContainer = document.querySelector(".messages");
+  if (messagesContainer) {
+    const div = document.createElement("div");
+    div.classList.add("message");
+    div.innerHTML = `<strong>${sender}:</strong> ${msg}`;
+    messagesContainer.appendChild(div);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+});
+
+document.getElementById("send")?.addEventListener("click", () => {
+  const input = document.getElementById("chat_message");
+  const text = input?.value.trim();
+  if (text) {
+    socket.emit('BE-send-message', { 
+      roomId: ROOM_ID, 
+      msg: text, 
+      sender: currentUser 
+    });
+    input.value = "";
+  }
+});
+
+document.getElementById("chat_message")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    document.getElementById("send")?.click();
+  }
+});
+
+document.querySelectorAll(".emoji-button").forEach(btn => {
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    const emoji = btn.getAttribute("data-emoji");
+    const input = document.getElementById("chat_message");
+    
+    if (input) {
+      input.value += emoji;
+      input.focus();
+    }
+  });
+});
+
+// ==========================================
+// CLEANUP ПРИ ВЫХОДЕ
+// ==========================================
+
 window.addEventListener("beforeunload", () => {
-  console.log('👋 Выход из конференции');
   socket.emit('BE-leave-room', { roomId: ROOM_ID });
   
   if (userStream) {
     userStream.getTracks().forEach(track => track.stop());
   }
   
-  peersRef.forEach(({ peer })=> {
+  if (screenShareStream) {
+    screenShareStream.getTracks().forEach(track => track.stop());
+  }
+  
+  peersRef.forEach(({ peer }) => {
     if (peer && typeof peer.destroy === 'function') {
       peer.destroy();
     }

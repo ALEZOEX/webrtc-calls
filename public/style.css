@@ -14,7 +14,7 @@
   --accent-warning: #faa81a;
   --accent-info: #00b8d4;
   --text-primary:#ffffff;
-  --text-secondary: #b9bbbe;
+--text-secondary: #b9bbbe;
   --text-muted: #72767d;
   --border-color: rgba(255, 255, 255, 0.06);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -25,7 +25,7 @@
   --transition-slow: 0.5s ease;
   --header-height: 64px;
   --control-panel-height:80px;
-  --chat-width: 380px;
+--chat-width: 380px;
   --border-radius: 12px;
   --border-radius-sm: 8px;
   --border-radius-lg: 16px;
@@ -33,9 +33,9 @@
 
 /* ========================================
    СБРОС И БАЗОВЫЕ СТИЛИ
-   ======================================== */
+   ========================================*/
 
-* {
+*{
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -56,7 +56,7 @@ html, body {
   width: 8px;
   height: 8px;
 }
-::-webkit-scrollbar-track {
+::-webkit-scrollbar-track{
   background: var(--bg-secondary);
 }
 ::-webkit-scrollbar-thumb {
@@ -71,14 +71,14 @@ html, body {
    АНИМАЦИИ
 ======================================== */
 
-@keyframes fadeIn {
+@keyframes fadeIn{
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideInRight {
   from { transform: translateX(100%); }
-  to{ transform: translateX(0); }
+  to{ transform: translateX(0);}
 }
 
 @keyframes pulse {
@@ -87,7 +87,7 @@ html, body {
 }
 
 @keyframes shimmer {
-  0% { background-position: -1000px 0; }
+  0% { background-position: -1000px 0;}
   100% { background-position: 1000px 0; }
 }
 
@@ -115,7 +115,7 @@ html, body {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+  background: linear-gradient(90deg, transparent, var(--accent-primary),transparent);
   animation: shimmer 3s infinite;
 }
 
@@ -131,13 +131,13 @@ html, body {
 transform: translateX(4px);
 }
 
-.header .logo h3 {
+.header.logo h3 {
   font-size: 20px;
   font-weight: 600;
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-info));
   -webkit-background-clip: text;
  -webkit-text-fill-color: transparent;
-  background-clip: text;
+background-clip:text;
 }
 
 .room-info {
@@ -148,7 +148,7 @@ transform: translateX(4px);
   background: var(--bg-hover);
   border-radius: var(--border-radius);
   font-size: 13px;
-  color: var(--text-secondary);
+  color:var(--text-secondary);
 }
 
 .room-info code {
@@ -161,9 +161,9 @@ transform: translateX(4px);
    ГЛАВНЫЙ КОНТЕЙНЕР
    ======================================== */
 
-.main {
-  display: flex;
-  height: calc(100vh - var(--header-height));
+.main{
+  display:flex;
+height: calc(100vh - var(--header-height));
   position: relative;
   background: var(--bg-primary);
 }
@@ -173,7 +173,7 @@ transform: translateX(4px);
    ========================================*/
 
 .main__left {
-  flex: 1;
+  flex:1;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -186,92 +186,305 @@ transform: translateX(4px);
    ВИДЕО СЕТКА
    ========================================*/
 
+/*==========================================
+VIDEO GRID - АДАПТИВНАЯСИСТЕМА
+   ========================================== */
+
 #video-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
+  display: grid;
   gap: 10px;
   padding: 15px;
   width: 100%;
   height: 92vh;
   box-sizing: border-box;
+  background: #1a1a1a;
+  align-content: center;
+  justify-content: center;
 }
 
-/* Video Container Base */
+/* Динамическая сетка в зависимости от количества участников */
+
+/* 1 участник - один большой блок по центру */
+#video-grid.peers-1 {
+ grid-template-columns: minmax(0,1200px);
+  grid-template-rows: auto;
+}
+
+/* 2 участника - 2 колонки, 1 ряд */
+#video-grid.peers-2 {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: 1fr;
+}
+
+/*3-4 участника - 2x2 сетка */
+#video-grid.peers-3,
+#video-grid.peers-4 {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+/* 5-6 участников- 3x2 сетка */
+#video-grid.peers-5,
+#video-grid.peers-6 {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+/* 7-9 участников - 3x3 сетка */
+#video-grid.peers-7,
+#video-grid.peers-8,
+#video-grid.peers-9 {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+
+/* 10-12 участников - 4x3 сетка */
+#video-grid.peers-10,
+#video-grid.peers-11,
+#video-grid.peers-12 {
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+
+/* 13-16 участников - 4x4 сетка */
+#video-grid.peers-13,
+#video-grid.peers-14,
+#video-grid.peers-15,
+#video-grid.peers-16 {
+  grid-template-columns: repeat(4, 1fr);
+ grid-template-rows: repeat(4, 1fr);
+}
+
+/* 17+ участников - 5 колонок, автоматические ряды */
+#video-grid.peers-many {
+  grid-template-columns: repeat(5, 1fr);
+  grid-auto-rows: 1fr;
+}
+
+/*==========================================
+  VIDEO CONTAINER -ОБНОВЛЕННАЯ СТРУКТУРА
+   ========================================== */
+
 .video-container {
   position: relative;
-  background: #1c1e20;
+  background: #2c2c2c;
   border-radius: 12px;
   overflow: hidden;
   display: flex;
   justify-content: center;
-  align-items: center;
-  aspect-ratio: 16/9; /* ВАЖНО: сохраняем пропорции */
+align-items: center;
+  min-height: 150px;
   transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.video-container:hover {
+  border-color: #4ea1d3;
+  box-shadow: 0 0 20px rgba(78, 161, 211, 0.5);
+}
+
+/* ==========================================
+   VIDEO AVATAR (первая буква имени)
+   ========================================== */
+
+.video-avatar {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(80px, 15vw, 150px);
+  height: clamp(80px, 15vw, 150px);
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: clamp(32px, 7vw, 64px);
+  font-weight: 700;
+  color: white;
+  z-index: 3;
+  text-transform: uppercase;
+  box-shadow:0 8px 24px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+/* Разные цвета для разных участников */
+.video-avatar[data-color="1"] { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.video-avatar[data-color="2"] { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.video-avatar[data-color="3"] { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.video-avatar[data-color="4"] { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+.video-avatar[data-color="5"] { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+.video-avatar[data-color="6"] { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+.video-avatar[data-color="7"] { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+.video-avatar[data-color="8"] { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
+
+/* Скрываем аватар когда видео включено */
+.video-avatar.hidden {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.5);
+  pointer-events: none;
+}
+
+/* ==========================================
+   VIDEO NAME (имя внизу слева)
+   ========================================== */
+
+.video-name {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background:rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: clamp(12px, 1.5vw, 16px);
+  font-weight: 600;
+  z-index: 4;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.video-name:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+/* Иконка "Вы" для локальногопользователя */
+.video-name.local-user {
+  background: rgba(78, 161, 211, 0.9);
+}
+
+.video-name.local-user::before {
+  content: "👤 ";
+  margin-right: 4px;
+}
+
+/* ==========================================
+   VIDEO WRAPPER
+   ========================================== */
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #1a1a1a;
 }
 
 .video-container video {
   width: 100%;
-  height: 100%;
+height: 100%;
   object-fit: cover;
+  display: block;
+  background: #000;
+  transition: opacity 0.3s ease;
+}
+
+/* Затемняем видео когда камера выключена */
+.video-container video.camera-off {
+  opacity: 0;
+}
+
+/* ==========================================
+   ИНДИКАТОР МИКРОФОНА (опционально)
+   ========================================== */
+
+.video-mic-indicator {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(255, 68, 68, 0.9);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  z-index: 4;
+  display: none;
+  box-shadow: 0 2px 8pxrgba(0, 0, 0, 0.3);
+}
+
+.video-mic-indicator.show {
   display: block;
 }
 
-/* Размеры в зависимости отколичества участников */
-.width-peer0 { width: 90% !important; max-width: 1200px; }
-.width-peer1 { width: 45% !important; }
-.width-peer2 { width: 45% !important; }
-.width-peer3 { width:30% !important; }
-.width-peer4 { width: 30% !important; }
-.width-peer5 { width: 30% !important; }
-.width-peer6 { width: 28% !important; }
-.width-peer7 { width: 28% !important; }
-.width-peer8 { width: 25% !important; }
-.width-peer { width: 23% !important; } /* Для 9+ участников */
-
-/* Placeholder (имя пользователя) */
-.video-placeholder {
-  position: absolute;
-  top: 50%;
-  left: 50%;
- transform: translate(-50%, -50%);
-  font-size: 24px;
-  font-weight: 600;
-  color: white;
-  z-index: 2;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 10px 20px;
-  border-radius: 8px;
-  display: none; /* По умолчанию скрыт */
+.video-mic-indicator i {
+  margin-right: 4px;
 }
 
-/* Показываем placeholder только если видео выключено */
-.video-container.no-video .video-placeholder {
-  display: flex !important;
-}
+/*==========================================
+   АДАПТИВ
+========================================== */
 
-/* Адаптив для мобильных */
 @media (max-width: 768px) {
-  .width-peer0,
-  .width-peer1,
-  .width-peer2,
-  .width-peer3,
-  .width-peer4,
-  .width-peer5,
-  .width-peer6,
-  .width-peer7,
-  .width-peer8,
-  .width-peer {
-    width: 90% !important;
+  .video-avatar {
+    width: clamp(60px, 20vw, 100px);
+    height: clamp(60px, 20vw, 100px);
+    font-size:clamp(24px, 8vw, 48px);
   }
-  
-  #video-grid {
-    flex-direction: column;
-    height: auto;
-    max-height: 92vh;
-    overflow-y: auto;
+
+  .video-name {
+    bottom: 8px;
+    left: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
   }
+}
+
+@media (max-width: 480px) {
+  .video-avatar {
+    width: 70px;
+    height: 70px;
+    font-size: 32px;
+  }
+
+  .video-name {
+    bottom: 6px;
+    left: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+}
+
+/* ==========================================
+   СПЕЦИАЛЬНЫЕ СОСТОЯНИЯ
+   ========================================== */
+
+/* Для демонстрации экрана - делаем блок больше */
+.video-container[data-peer-id="screen-share-local"] {
+  grid-column: span 2;
+  grid-row: span 2;
+  border: 3px solid #ff9800;
+}
+
+@media (max-width: 768px) {
+  .video-container[data-peer-id="screen-share-local"]{
+    grid-column:span 1;
+    grid-row: span 1;
+  }
+}
+
+/* ==========================================
+   АНИМАЦИИ========================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+   transform: scale(1);
+  }
+}
+
+.video-container {
+  animation: fadeIn 0.3s ease;
 }
 
 /*========================================
@@ -282,9 +495,9 @@ transform: translateX(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+ gap: 8px;
   padding: 16px;
-  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+  background: linear-gradient(135deg, var(--bg-secondary),var(--bg-tertiary));
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--border-color);
   min-height: var(--control-panel-height);
@@ -300,7 +513,7 @@ transform: translateX(4px);
   width: 56px;
   height: 56px;
   border: none;
-  border-radius: 50%;
+border-radius: 50%;
   background: var(--bg-hover);
   color: var(--text-secondary);
   font-size: 20px;
@@ -309,7 +522,7 @@ transform: translateX(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border-color);
+ border: 1px solid var(--border-color);
 }
 
 .control-button:hover {
@@ -346,7 +559,7 @@ transform: translateX(4px);
 }
 
 .chat-panel h3{
-  font-size: 18px;
+font-size: 18px;
   font-weight: 600;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 12px;
@@ -357,7 +570,7 @@ transform: translateX(4px);
    ======================================== */
 
 .messages {
- flex: 1;
+ flex:1;
   background: var(--bg-primary);
   border-radius: var(--border-radius);
   padding: 16px;
@@ -369,7 +582,7 @@ transform: translateX(4px);
 }
 
 .message {
-padding: 12px 16px;
+padding:12px 16px;
   background: var(--bg-tertiary);
   border-radius: var(--border-radius);
   animation: fadeIn 0.3s ease;
@@ -378,32 +591,32 @@ padding: 12px 16px;
 
 .message:hover {
   background: var(--bg-hover);
-border-left-color: var(--accent-primary);
+border-left-color:var(--accent-primary);
   transform: translateX(4px);
 }
 
 .message strong {
   color: var(--accent-primary);
   font-weight: 600;
-  display: block;
+  display:block;
   margin-bottom: 4px;
 }
 
 /* ========================================
    ВВОД СООБЩЕНИЙ
-   ======================================== */
+======================================== */
 
 .chat-input-container {
   display: flex;
   gap: 8px;
   padding: 12px;
   background: var(--bg-primary);
-  border-radius: var(--border-radius);
+ border-radius: var(--border-radius);
   border: 1px solid var(--border-color);
 }
 
 .chat-input-container:focus-within {
-  border-color: var(--accent-primary);
+ border-color: var(--accent-primary);
 }
 
 #chat_message {
@@ -417,7 +630,7 @@ border-left-color: var(--accent-primary);
 .chat-send-button {
   width: 40px;
   height:40px;
-  border: none;
+border: none;
   border-radius: 50%;
   background: var(--accent-primary);
   color: white;
@@ -425,7 +638,7 @@ border-left-color: var(--accent-primary);
 }
 
 .chat-send-button:hover {
-  background: var(--accent-info);
+  background:var(--accent-info);
 }
 
 /* ========================================
@@ -437,14 +650,14 @@ border-left-color: var(--accent-primary);
   gap: 8px;
   padding: 12px;
   background: var(--bg-primary);
-  border-radius: var(--border-radius);
+  border-radius:var(--border-radius);
 }
 
 .emoji-button {
   width: 40px;
 height: 40px;
-  border: none;
-  border-radius: 50%;
+border: none;
+border-radius: 50%;
   background: var(--bg-hover);
   font-size: 20px;
   cursor: pointer;
@@ -456,7 +669,7 @@ height: 40px;
 
 /* ========================================
    СТРАНИЦА ВХОДА
-   ======================================== */
+   ========================================*/
 
 .index-container {
   display: flex;
@@ -472,14 +685,22 @@ height: 40px;
   font-size: 48px;
   font-weight: 700;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-info));
+background: linear-gradient(135deg, var(--accent-primary), var(--accent-info));
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+ -webkit-text-fill-color: transparent;
+ background-clip: text;
+}
+
+.index-header p {
+  font-size: 20px;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .index-actions {
-  display: flex;
+ display: flex;
   gap: 16px;
   margin: 40px 0;
 }
@@ -523,7 +744,7 @@ height: 40px;
 }
 
 .form-group input {
-  width: 100%;
+  width:100%;
   padding: 12px 16px;
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -542,26 +763,26 @@ height: 40px;
   }
 
   .header { padding: 0 16px; }
-  .header .logo h3 { font-size: 18px; }
+  .header.logo h3 { font-size: 18px; }
   .room-info { display: none; }
 
 .main { flex-direction: column; }
-  .main__left { padding: 8px; gap: 8px; }
+  .main__left {padding: 8px; gap: 8px; }
 
   .main__right {
     width: 100%;
-    position: fixed;
+position: fixed;
     top: var(--header-height);
-    right: -100%;
+right: -100%;
    bottom: 0;
     z-index: 2000;
     transition: right var(--transition-normal);
     background: var(--bg-secondary);
   }
-  .main__right.active { right: 0; }
+  .main__right.active { right:0; }
 
   .video-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns:1fr;
     gap: 8px;
     padding: 4px;
     padding-bottom: calc(var(--control-panel-height) + 20px);
@@ -574,10 +795,10 @@ height: 40px;
     bottom: 0; left: 0; right: 0;
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
     z-index: 1500;
-    background: rgba(26, 26, 29, 0.98);
+    background:rgba(26, 26, 29, 0.98);
     backdrop-filter: blur(20px);
     padding: 12px 8px;
-    gap: 6px;
+gap: 6px;
   }
 
   .control-button { width: 48px; height: 48px; font-size: 18px; }
@@ -588,16 +809,16 @@ height: 40px;
     max-width: 90vw !important;
   }
 
-  .index-header h1 { font-size: 36px; }
-  .index-actions { flex-direction: column; width: 100%; max-width: 300px; }
+  .index-header h1 { font-size:36px; }
+  .index-actions { flex-direction: column;width: 100%; max-width: 300px; }
   .form-card { margin: 0 16px; padding: 24px; }
 }
 
 @media (max-width: 480px) {
-  .control-panel { padding: 8px; gap: 4px; }
+  .control-panel { padding: 8px; gap:4px; }
  .control-button { width: 40px; height: 40px; font-size: 14px; }
   .control-panel::after { display: none; }
-  .chat-panel { padding: 12px; }
+  .chat-panel {padding: 12px; }
   .emoji-buttons { gap: 4px; padding:8px; }
   .emoji-button { width: 36px; height: 36px; font-size: 18px; }
 }
