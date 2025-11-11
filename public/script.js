@@ -1,13 +1,20 @@
 "use strict";
 
+// ==========================================
+// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+// ==========================================
+
 const currentUser = new URLSearchParams(window.location.search).get('userName') || 
                     prompt("Введите ваш никнейм:") || "Аноним";
 
 const peersRef = [];
-let userVideoAudio = { localUser: { video: false, audio: true } }; // камера выключена!
+let userVideoAudio = { localUser: { video: false, audio: true } };
 let userStream = null;
 
-const videoGrid = document.getElementById("video-grid");
+// Две отдельные зоны!
+const screenShareZone = document.getElementById("screen-share-zone");
+const participantsGrid = document.getElementById("participants-grid");
+
 const myVideo = document.createElement("video");
 myVideo.muted = true;
 myVideo.playsInline = true;
@@ -19,10 +26,38 @@ const socket = io(window.location.origin, {
 
 window.socket = socket;
 
+// ==========================================
+// УТИЛИТЫ
+// ==========================================
+
+function getAvatarColor(userName) {
+  let hash = 0;
+  for (let i = 0; i < userName.length; i++) {
+    hash = userName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return (Math.abs(hash) % 8) + 1;
+}
+
+function getInitial(userName) {
+  if (!userName || userName.trim() === '') return '?';
+  // Фильтруем эмодзи и спецсимволы
+  const cleanName = userName.replace(/[^\w\s\u0400-\u04FF]/g, '').trim();
+  if (cleanName.length === 0) return userName[0];
+  return cleanName[0].toUpperCase();
+}
+
+// ==========================================
+// SOCKET.IO
+// ==========================================
+
 socket.on('connect', () => {
   console.log('✅ Socket подключен:', socket.id);
   initializeRoom();
 });
+
+// ==========================================
+// ИНИЦИАЛИЗАЦИЯ КОМНАТЫ
+// ==========================================
 
 async function initializeRoom() {
   try {
@@ -34,14 +69,11 @@ async function initializeRoom() {
     userStream = stream;
     myVideo.srcObject = stream;
     
-    // ✅ КАМЕРА ВЫКЛЮЧЕНА ПО УМОЛЧАНИЮ
     stream.getVideoTracks()[0].enabled = false;
-    
     userVideoAudio.localUser = { video: false, audio: true };
     
-    addVideoStream(myVideo, true, currentUser, null);
+    addParticipant(myVideo, currentUser, null, true);
     
-    // Обновляем иконку кнопки
     const iconV = document.querySelector("#stopVideo i");
     if (iconV) iconV.className = "fa fa-video-slash";
 
@@ -57,6 +89,10 @@ async function initializeRoom() {
     alert("Нет доступа к камере/микрофону");
   }
 }
+
+// ==========================================
+// SOCKET СОБЫТИЯ
+// ==========================================
 
 function setupSocketListeners(stream) {
   socket.on('FE-user-join', (users) => {
@@ -118,13 +154,13 @@ function setupSocketListeners(stream) {
       }
       
       peersRef.splice(peerIdx, 1);
-      removeVideoElement(userId);
+      removeParticipant(userId);
       
       if (userName && userVideoAudio[userName]) {
         delete userVideoAudio[userName];
       }
       
-      updateVideoSizes();
+      updateParticipantsGrid();
     }
   });
 
@@ -143,33 +179,23 @@ function setupSocketListeners(stream) {
           const video = container.querySelector('video');
           
           if (userVideoAudio[userName].video) {
-            // Камера включена
             if (avatar) avatar.classList.add('hidden');
             if (video) video.classList.remove('camera-off');
           } else {
-            // Камера выключена
             if (avatar) avatar.classList.remove('hidden');
             if (video) video.classList.add('camera-off');
           }
         }
       } else {
-        // АУДИО
         userVideoAudio[userName].audio = !userVideoAudio[userName].audio;
-        
-        if (container) {
-          const micIndicator = container.querySelector('.video-mic-indicator');
-          if (micIndicator) {
-            if (userVideoAudio[userName].audio) {
-              micIndicator.classList.remove('show');
-            } else {
-              micIndicator.classList.add('show');
-            }
-          }
-        }
       }
     }
   });
 }
+
+// ==========================================
+// WEBRTC PEERS
+// ==========================================
 
 function createPeer(userId, caller, stream) {
   const peer = new SimplePeer({
@@ -199,7 +225,22 @@ function createPeer(userId, caller, stream) {
     video.srcObject = remoteStream;
     video.autoplay = true;
     video.playsInline = true;
-    addVideoStream(video, false, peer.userName, userId);
+    
+    addParticipant(video, peer.userName, userId, false);
+    
+    // Проверяем статус камеры
+    const hasVideo = userVideoAudio[peer.userName]?.video ?? true;
+    if (!hasVideo) {
+      setTimeout(() => {
+        const container = document.querySelector(`[data-peer-id="${userId}"]`);
+        if (container) {
+          const avatar = container.querySelector('.video-avatar');
+          const videoEl = container.querySelector('video');
+          if (avatar) avatar.classList.remove('hidden');
+          if (videoEl) videoEl.classList.add('camera-off');
+        }
+      }, 100);
+    }
   });
 
   peer.on('error', (err) => {
@@ -234,13 +275,9 @@ function addPeer(incomingSignal, callerId, stream) {
     video.autoplay = true;
     video.playsInline = true;
     
-    // ВАЖНО: передаем информацию о статусе камеры
-    const isLocal = false;
+    addParticipant(video, peer.userName, callerId, false);
+    
     const hasVideo = userVideoAudio[peer.userName]?.video ?? true;
-    
-    addVideoStream(video, isLocal, peer.userName, callerId);
-    
-    // Если камера выключена - сразу обновляем UI
     if (!hasVideo) {
       setTimeout(() => {
         const container = document.querySelector(`[data-peer-id="${callerId}"]`);
@@ -263,18 +300,21 @@ function addPeer(incomingSignal, callerId, stream) {
   return peer;
 }
 
-function addVideoStream(video, isLocal, userName, peerId) {
+// ==========================================
+// UI: ДОБАВЛЕНИЕ УЧАСТНИКА
+// ==========================================
+
+function addParticipant(video, userName, peerId, isLocal) {
   const container = document.createElement("div");
-  container.classList.add("video-container");
+  container.classList.add("participant-container");
   if (peerId) container.setAttribute("data-peer-id", peerId);
 
-  // 1. АВАТАР (первая буква имени)
+  // Аватар
   const avatar = document.createElement("div");
   avatar.className = "video-avatar";
   avatar.setAttribute("data-color", getAvatarColor(userName));
   avatar.textContent = getInitial(userName);
   
-  // Если камера включена - сразу скрываем аватар
   const cameraEnabled = isLocal ? userVideoAudio.localUser.video : true;
   if (cameraEnabled) {
     avatar.classList.add('hidden');
@@ -282,7 +322,7 @@ function addVideoStream(video, isLocal, userName, peerId) {
   
   container.appendChild(avatar);
 
-  // 2. VIDEO WRAPPER
+  // Video wrapper
   const wrapper = document.createElement("div");
   wrapper.className = "video-wrapper";
   
@@ -290,7 +330,6 @@ function addVideoStream(video, isLocal, userName, peerId) {
   video.style.height = "100%";
   video.style.objectFit = "cover";
   
-  // Если камера выключена - затемняем видео
   if (!cameraEnabled) {
     video.classList.add('camera-off');
   }
@@ -298,83 +337,49 @@ function addVideoStream(video, isLocal, userName, peerId) {
   wrapper.appendChild(video);
   container.appendChild(wrapper);
 
-  // 3. ИМЯ ПОЛЬЗОВАТЕЛЯ (внизу слева)
+  // Имя
   const nameLabel = document.createElement("div");
   nameLabel.className = "video-name";
   if (isLocal) {
     nameLabel.classList.add('local-user');
   }
-  nameLabel.textContent = isLocal ? `${userName}` : userName;
+  nameLabel.textContent = userName;
   container.appendChild(nameLabel);
   
-  // 4. ИНДИКАТОР МИКРОФОНА (опционально)
-  const micIndicator = document.createElement("div");
-  micIndicator.className = "video-mic-indicator";
-  micIndicator.innerHTML = '<i class="fa fa-microphone-slash"></i> Muted';
-  container.appendChild(micIndicator);
-  
-  videoGrid.appendChild(container);
-  
-  // КРИТИЧНО: обновляем сетку ПОСЛЕ добавления
-  updateGridLayout();
+  participantsGrid.appendChild(container);
+  updateParticipantsGrid();
   
   video.play().catch(err => {
     console.warn("⚠️ Не удалось автовоспроизвести:", err);
   });
 }
 
-function removeVideoElement(peerId) {
+function removeParticipant(peerId) {
   const container = document.querySelector(`[data-peer-id="${peerId}"]`);
-  if (container) {
+  if (container && container.parentElement === participantsGrid) {
     container.remove();
-    updateGridLayout();
+    updateParticipantsGrid();
   }
 }
 
-// ==========================================
-// ДИНАМИЧЕСКОЕ ОБНОВЛЕНИЕ СЕТКИ
-// ==========================================
-
-function updateGridLayout() {
-  const containers = document.querySelectorAll('.video-container');
+function updateParticipantsGrid() {
+  const containers = participantsGrid.querySelectorAll('.participant-container');
   const count = containers.length;
   
-  // Убираем все старые классы
-  videoGrid.classList.remove(
+  participantsGrid.classList.remove(
     'peers-1', 'peers-2', 'peers-3', 'peers-4', 
     'peers-5', 'peers-6', 'peers-7', 'peers-8', 
     'peers-9', 'peers-10', 'peers-11', 'peers-12',
-    'peers-13', 'peers-14', 'peers-15', 'peers-16',
     'peers-many'
   );
   
-  // Добавляем новый класс в зависимости от количества
-  if (count <= 16) {
-    videoGrid.classList.add(`peers-${count}`);
+  if (count <= 12) {
+    participantsGrid.classList.add(`peers-${count}`);
   } else {
-    videoGrid.classList.add('peers-many');
+    participantsGrid.classList.add('peers-many');
   }
   
-  console.log(`🎨 Обновлена сетка: ${count} участников`);
-}
-
-// ==========================================
-// УТИЛИТЫ ДЛЯ АВАТАРОВ
-// ==========================================
-
-// Генерация цвета по имени (консистентно)
-function getAvatarColor(userName) {
-  let hash = 0;
-  for (let i = 0; i < userName.length; i++) {
-    hash = userName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return (Math.abs(hash) % 8) + 1; // Возвращает число от 1 до 8
-}
-
-// Получение первой буквы имени
-function getInitial(userName) {
-  if (!userName || userName.trim() === '') return '?';
-  return userName.trim()[0].toUpperCase();
+  console.log(`🎨 Участников: ${count}`);
 }
 
 // ==========================================
@@ -389,24 +394,20 @@ document.getElementById("stopVideo")?.addEventListener("click", () => {
     videoTrack.enabled = !videoTrack.enabled;
     userVideoAudio.localUser.video = videoTrack.enabled;
     
-    // Обновляем иконку кнопки
     const icon = document.querySelector("#stopVideo i");
     if (icon) {
       icon.className = videoTrack.enabled ? "fa fa-video" : "fa fa-video-slash";
     }
     
-    // Обновляем UI контейнера
-    const myContainer = videoGrid.querySelector('.video-container:first-child');
+    const myContainer = participantsGrid.querySelector('.participant-container');
     if (myContainer) {
       const avatar = myContainer.querySelector('.video-avatar');
       const video = myContainer.querySelector('video');
       
       if (videoTrack.enabled) {
-        // Камера включена: скрываем аватар, показываем видео
         if (avatar) avatar.classList.add('hidden');
         if (video) video.classList.remove('camera-off');
       } else {
-        // Камера выключена: показываем аватар, скрываем видео
         if (avatar) avatar.classList.remove('hidden');
         if (video) video.classList.add('camera-off');
       }
@@ -444,7 +445,7 @@ document.getElementById("muteButton")?.addEventListener("click", () => {
 });
 
 // ==========================================
-// ДЕМОНСТРАЦИЯ ЭКРАНА
+// ДЕМОНСТРАЦИЯ ЭКРАНА (ИСПРАВЛЕННАЯ!)
 // ==========================================
 
 let screenShareStream = null;
@@ -473,14 +474,28 @@ async function startScreenShare() {
     screenShareStream = stream;
     isScreenSharing = true;
     
-    // Создаем локальное видео для предпросмотра
+    // Создаем контейнер для демонстрации
+    const screenContainer = document.createElement('div');
+    screenContainer.className = 'screen-container';
+    screenContainer.id = 'active-screen-share';
+    
     const screenVideo = document.createElement('video');
     screenVideo.srcObject = stream;
     screenVideo.muted = true;
     screenVideo.autoplay = true;
     screenVideo.playsInline = true;
     
-    addVideoStream(screenVideo, true, "🖥️ Ваш экран", "screen-share-local");
+    const screenLabel = document.createElement('div');
+    screenLabel.className = 'screen-label';
+    screenLabel.innerHTML = '<i class="fas fa-desktop"></i> Демонстрация экрана';
+    
+    screenContainer.appendChild(screenVideo);
+    screenContainer.appendChild(screenLabel);
+    screenShareZone.appendChild(screenContainer);
+    
+    // Активируем зону демонстрации
+    screenShareZone.classList.add('active');
+    participantsGrid.classList.add('compact');
     
     // Обновляем кнопку
     const btn = document.getElementById("screenShareButton");
@@ -504,16 +519,21 @@ async function startScreenShare() {
       }
     });
     
-    // Обрабатываем остановку демонстрации
+    // Обработка остановки
     screenTrack.onended = () => {
-      console.log('🖥️ Демонстрация остановлена пользователем');
+      console.log('🖥️ Демонстрация остановлена');
       stopScreenShare();
     };
     
-    console.log('✅ Демонстрация экрана началась');
+    // Воспроизводим локально
+    screenVideo.play().catch(err => {
+      console.error('Ошибка воспроизведения:', err);
+    });
+    
+    console.log('✅ Демонстрация началась');
     
   } catch (err) {
-    console.error('❌ Ошибка демонстрации экрана:', err);
+    console.error('❌ Ошибка демонстрации:', err);
     if (err.name === 'NotAllowedError') {
       showNotification('⚠️ Вы отклонили запрос на демонстрацию', 'error');
     }
@@ -521,15 +541,22 @@ async function startScreenShare() {
 }
 
 function stopScreenShare() {
-  console.log('🛑 Останавливаем демонстрацию экрана');
+  console.log('🛑 Останавливаем демонстрацию');
   
   if (screenShareStream) {
     screenShareStream.getTracks().forEach(track => track.stop());
     screenShareStream = null;
   }
   
-  // Удаляем локальное видео демонстрации
-  removeVideoElement("screen-share-local");
+  // Удаляем контейнер демонстрации
+  const screenContainer = document.getElementById('active-screen-share');
+  if (screenContainer) {
+    screenContainer.remove();
+  }
+  
+  // Деактивируем зону
+  screenShareZone.classList.remove('active');
+  participantsGrid.classList.remove('compact');
   
   // Возвращаем камеру
   if (userStream) {
@@ -556,8 +583,6 @@ function stopScreenShare() {
   }
   
   isScreenSharing = false;
-  // КРИТИЧНО: обновляем сетку после удаления экрана
-  updateGridLayout();
 }
 
 // ==========================================
@@ -565,7 +590,6 @@ function stopScreenShare() {
 // ==========================================
 
 document.getElementById("inviteButton")?.addEventListener("click", () => {
-  // Формируем ссылку БЕЗ параметра userName
   const roomUrl = `${window.location.origin}/room/${ROOM_ID}`;
   
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -622,14 +646,8 @@ function showNotification(message, type = 'info') {
   const style = document.createElement('style');
   style.textContent = `
     @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
+      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
   `;
   document.head.appendChild(style);
@@ -651,7 +669,7 @@ function showNotification(message, type = 'info') {
 }
 
 // ==========================================
-// ВЫХОД ИЗ КОНФЕРЕНЦИИ
+// ВЫХОД
 // ==========================================
 
 document.getElementById("exit-conference-btn")?.addEventListener("click", () => {
@@ -719,7 +737,7 @@ document.querySelectorAll(".emoji-button").forEach(btn => {
 });
 
 // ==========================================
-// CLEANUP ПРИ ВЫХОДЕ
+// CLEANUP
 // ==========================================
 
 window.addEventListener("beforeunload", () => {

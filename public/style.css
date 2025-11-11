@@ -163,152 +163,227 @@ background-clip:text;
 
 .main{
   display:flex;
-height: calc(100vh - var(--header-height));
+height:calc(100vh - var(--header-height));
   position: relative;
   background: var(--bg-primary);
 }
 
-/* ========================================
-   ЛЕВАЯ ПАНЕЛЬ (ВИДЕО)
-   ========================================*/
-
-.main__left {
-  flex:1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  padding: 20px;
-  gap: 20px;
-  overflow: hidden;
-}
-
-/* ========================================
-   ВИДЕО СЕТКА
-   ========================================*/
-
-/*==========================================
-VIDEO GRID - АДАПТИВНАЯСИСТЕМА
+/* ==========================================
+MAINLAYOUT
    ========================================== */
 
-#video-grid {
+.main__left {
+  position: relative;
+  width: 75%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a1a;
+}
+
+/* ==========================================
+   SCREEN SHARE ZONE (демонстрация экрана)
+   ========================================== */
+
+.screen-share-zone {
+  width: 100%;
+  height: 0;
+  overflow: hidden;
+  background: #0a0a0a;
+  transition: height 0.3s ease;
+  display: flex;
+  justify-content:center;
+  align-items: center;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+/* Когда демонстрация активна */
+.screen-share-zone.active {
+  height: 70%;
+  border-bottom: 2px solid #ff9800;
+}
+
+.screen-share-zone .screen-container {
+  width: 100%;
+  height: 100%;
+  max-width: 1600px;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(255, 152, 0, 0.3);
+}
+
+.screen-share-zone .screen-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* contain для демонстрации! */
+ background: #000;
+}
+
+.screen-share-zone .screen-label {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background: rgba(255, 152, 0, 0.95);
+  color: white;
+ padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.screen-share-zone .screen-label i {
+  font-size: 16px;
+}
+
+/* ==========================================
+   PARTICIPANTS GRID (участники)
+   ========================================== */
+
+.participants-grid {
+  width: 100%;
+  height: 92%; /* По умолчанию 92% (8% для панели управления) */
   display: grid;
   gap: 10px;
   padding: 15px;
-  width: 100%;
-  height: 92vh;
   box-sizing: border-box;
   background: #1a1a1a;
   align-content: center;
   justify-content: center;
+  overflow: hidden;
+ transition: height 0.3s ease;
 }
 
-/* Динамическая сетка в зависимости от количества участников */
-
-/* 1 участник - один большой блок по центру */
-#video-grid.peers-1 {
- grid-template-columns: minmax(0,1200px);
-  grid-template-rows: auto;
+/* Когда демонстрация активна - участники занимают меньше */
+.participants-grid.compact {
+  height: 22%; /* 70% экран + 22% участники + 8% панель = 100%*/
 }
 
-/* 2 участника - 2 колонки, 1 ряд */
-#video-grid.peers-2 {
+/* ==========================================
+   ДИНАМИЧЕСКИЕ GRID КЛАССЫ (только для участников!)
+   ========================================== */
+
+/* 1 участник */
+.participants-grid.peers-1 {
+  grid-template-columns: minmax(0, 400px);
+}
+
+/* 2 участник */
+.participants-grid.peers-2 {
   grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: 1fr;
 }
 
-/*3-4 участника - 2x2 сетка */
-#video-grid.peers-3,
-#video-grid.peers-4 {
+/* 3-4 участника */
+.participants-grid.peers-3,
+.participants-grid.peers-4 {
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
 }
 
-/* 5-6 участников- 3x2 сетка */
-#video-grid.peers-5,
-#video-grid.peers-6 {
+/* 5-6 участников */
+.participants-grid.peers-5,
+.participants-grid.peers-6 {
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
 }
 
-/* 7-9 участников - 3x3 сетка */
-#video-grid.peers-7,
-#video-grid.peers-8,
-#video-grid.peers-9 {
+/* 7-9 участников */
+.participants-grid.peers-7,
+.participants-grid.peers-8,
+.participants-grid.peers-9 {
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
 }
 
-/* 10-12 участников - 4x3 сетка */
-#video-grid.peers-10,
-#video-grid.peers-11,
-#video-grid.peers-12 {
+/* 10-12 участников */
+.participants-grid.peers-10,
+.participants-grid.peers-11,
+.participants-grid.peers-12 {
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(3, 1fr);
 }
 
-/* 13-16 участников - 4x4 сетка */
-#video-grid.peers-13,
-#video-grid.peers-14,
-#video-grid.peers-15,
-#video-grid.peers-16 {
-  grid-template-columns: repeat(4, 1fr);
- grid-template-rows: repeat(4, 1fr);
-}
-
-/* 17+ участников - 5 колонок, автоматические ряды */
-#video-grid.peers-many {
+/* 13+ участников */
+.participants-grid.peers-many {
   grid-template-columns: repeat(5, 1fr);
   grid-auto-rows: 1fr;
 }
 
-/*==========================================
-  VIDEO CONTAINER -ОБНОВЛЕННАЯ СТРУКТУРА
+/* Если демонстрация активна - показываем больше колонок */
+.participants-grid.compact.peers-1,
+.participants-grid.compact.peers-2,
+.participants-grid.compact.peers-3,
+.participants-grid.compact.peers-4 {
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: 1fr;
+}
+
+.participants-grid.compact.peers-5,
+.participants-grid.compact.peers-6,
+.participants-grid.compact.peers-7,
+.participants-grid.compact.peers-8 {
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: 1fr;
+}
+
+.participants-grid.compact.peers-many {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-auto-rows: 1fr;
+}
+
+/* ==========================================
+   PARTICIPANT CONTAINER
    ========================================== */
 
-.video-container {
+.participant-container {
   position: relative;
   background: #2c2c2c;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   display: flex;
   justify-content: center;
-align-items: center;
-  min-height: 150px;
+  align-items:center;
+  min-height: 100px;
   transition: all 0.3s ease;
   border: 2px solid transparent;
 }
 
-.video-container:hover {
+.participant-container:hover {
   border-color: #4ea1d3;
   box-shadow: 0 0 20px rgba(78, 161, 211, 0.5);
 }
 
 /* ==========================================
-   VIDEO AVATAR (первая буква имени)
-   ========================================== */
+   VIDEO AVATAR
+========================================== */
 
 .video-avatar {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: clamp(80px, 15vw, 150px);
-  height: clamp(80px, 15vw, 150px);
+  width: clamp(60px, 12vw, 120px);
+  height: clamp(60px, 12vw, 120px);
   border-radius: 50%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: clamp(32px, 7vw, 64px);
+  font-size: clamp(24px, 5vw, 48px);
   font-weight: 700;
   color: white;
   z-index: 3;
   text-transform: uppercase;
-  box-shadow:0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
 }
 
-/* Разные цвета для разных участников */
 .video-avatar[data-color="1"] { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
 .video-avatar[data-color="2"] { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
 .video-avatar[data-color="3"] { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
@@ -318,7 +393,6 @@ align-items: center;
 .video-avatar[data-color="7"] { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
 .video-avatar[data-color="8"] { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
 
-/* Скрываем аватар когда видео включено */
 .video-avatar.hidden {
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.5);
@@ -326,41 +400,30 @@ align-items: center;
 }
 
 /* ==========================================
-   VIDEO NAME (имя внизу слева)
+   VIDEO NAME
    ========================================== */
 
 .video-name {
   position: absolute;
-  bottom: 12px;
-  left: 12px;
-  background:rgba(0, 0, 0, 0.75);
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(10px);
   color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: clamp(12px, 1.5vw, 16px);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: clamp(10px,1.2vw, 14px);
   font-weight: 600;
   z-index: 4;
-  max-width: calc(100% - 24px);
+  max-width: calc(100% - 16px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
 }
 
-.video-name:hover {
-  background: rgba(0, 0, 0, 0.9);
-}
-
-/* Иконка "Вы" для локальногопользователя */
 .video-name.local-user {
   background: rgba(78, 161, 211, 0.9);
-}
-
-.video-name.local-user::before {
-  content: "👤 ";
-  margin-right: 4px;
 }
 
 /* ==========================================
@@ -371,54 +434,66 @@ align-items: center;
   position: relative;
   width: 100%;
   height: 100%;
-  display: flex;
+display: flex;
   justify-content: center;
   align-items: center;
   background: #1a1a1a;
 }
 
-.video-container video {
+.participant-container video {
   width: 100%;
-height: 100%;
+  height: 100%;
   object-fit: cover;
   display: block;
   background: #000;
   transition: opacity 0.3s ease;
 }
 
-/* Затемняем видео когда камера выключена */
-.video-container video.camera-off {
+.participant-container video.camera-off {
   opacity: 0;
 }
 
 /* ==========================================
-   ИНДИКАТОР МИКРОФОНА (опционально)
+   АДАПТИВ
    ========================================== */
 
-.video-mic-indicator {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  background: rgba(255, 68, 68, 0.9);
-  color: white;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  z-index: 4;
-  display: none;
-  box-shadow: 0 2px 8pxrgba(0, 0, 0, 0.3);
+@media (max-width: 768px) {
+  .screen-share-zone.active {
+    height: 60%;
+  }
+
+  .participants-grid.compact {
+    height: 32%;
+  }
+
+  .participants-grid {
+   grid-template-columns: repeat(2, 1fr) !important;
+    grid-auto-rows: minmax(120px, auto);
+  }
+
+  .participants-grid.compact {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
 }
 
-.video-mic-indicator.show {
-  display: block;
-}
+@media (max-width: 480px) {
+  .screen-share-zone.active {
+    height: 50%;
+  }
 
-.video-mic-indicator i {
-  margin-right: 4px;
+  .participants-grid.compact {
+    height: 42%;
+  }
+
+  .participants-grid {
+    grid-template-columns: 1fr !important;
+    padding: 10px;
+    gap:8px;
+  }
 }
 
 /*==========================================
-   АДАПТИВ
+  АДАПТИВ
 ========================================== */
 
 @media (max-width: 768px) {
@@ -495,7 +570,7 @@ height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
- gap: 8px;
+ gap:8px;
   padding: 16px;
   background: linear-gradient(135deg, var(--bg-secondary),var(--bg-tertiary));
   border-radius: var(--border-radius-lg);
@@ -641,7 +716,7 @@ border: none;
   background:var(--accent-info);
 }
 
-/* ========================================
+/*========================================
    КНОПКИ ЭМОДЗИ======================================== */
 
 .emoji-buttons {
@@ -685,7 +760,7 @@ border-radius: 50%;
   font-size: 48px;
   font-weight: 700;
   margin-bottom: 16px;
-background: linear-gradient(135deg, var(--accent-primary), var(--accent-info));
+background:linear-gradient(135deg, var(--accent-primary), var(--accent-info));
   -webkit-background-clip: text;
  -webkit-text-fill-color: transparent;
  background-clip: text;
@@ -707,7 +782,7 @@ background: linear-gradient(135deg, var(--accent-primary), var(--accent-info));
 
 .btn{
   padding: 14px 28px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-info));
+  background:linear-gradient(135deg, var(--accent-primary), var(--accent-info));
   color: white;
   border: none;
   border-radius: var(--border-radius);
@@ -717,14 +792,14 @@ background: linear-gradient(135deg, var(--accent-primary), var(--accent-info));
 }
 
 .btn:hover {
-  transform: translateY(-3px);
+ transform: translateY(-3px);
   box-shadow: 0 10px 30px rgba(88, 101, 242, 0.4);
 }
 
 .form-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-lg);
+border-radius: var(--border-radius-lg);
   padding: 32px;
   width: 100%;
   max-width: 450px;
@@ -759,7 +834,7 @@ background: linear-gradient(135deg, var(--accent-primary), var(--accent-info));
 @media (max-width: 768px) {
   :root{
     --header-height: 56px;
-    --control-panel-height: 70px;
+    --control-panel-height:70px;
   }
 
   .header { padding: 0 16px; }
@@ -799,7 +874,7 @@ right: -100%;
     backdrop-filter: blur(20px);
     padding: 12px 8px;
 gap: 6px;
-  }
+}
 
   .control-button { width: 48px; height: 48px; font-size: 18px; }
   .chat-panel { padding: 16px; }
@@ -811,7 +886,7 @@ gap: 6px;
 
   .index-header h1 { font-size:36px; }
   .index-actions { flex-direction: column;width: 100%; max-width: 300px; }
-  .form-card { margin: 0 16px; padding: 24px; }
+  .form-card { margin: 0 16px; padding:24px; }
 }
 
 @media (max-width: 480px) {
