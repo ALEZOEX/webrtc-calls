@@ -108,6 +108,19 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`🔴 Отключился: ${socket.id}`);
+    
+    const userName = socketList[socket.id]?.userName;
+    
+    // КРИТИЧНО: находим все комнаты, где был этот пользователь
+    const rooms = Array.from(socket.rooms).filter(room => room !== socket.id);
+    
+    rooms.forEach(roomId => {
+      socket.broadcast.to(roomId).emit('FE-user-leave', { 
+        userId: socket.id, 
+        userName 
+      });
+    });
+    
     delete socketList[socket.id];
   });
 

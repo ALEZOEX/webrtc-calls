@@ -1,8 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ========================================
-   ПЕРЕМЕННЫЕ И ОСНОВНЫЕ НАСТРОЙКИ
-   ======================================== */
+   ПЕРЕМЕННЫЕ И ОСНОВНЫЕ НАСТРОЙКИ======================================== */
 
 :root {
   --bg-primary: #0f0f10;
@@ -14,18 +13,18 @@
   --accent-danger: #ed4245;
   --accent-warning: #faa81a;
   --accent-info: #00b8d4;
-  --text-primary: #ffffff;
+  --text-primary:#ffffff;
   --text-secondary: #b9bbbe;
   --text-muted: #72767d;
   --border-color: rgba(255, 255, 255, 0.06);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 40px rgba(0,0, 0, 0.5);
   --transition-fast: 0.15s ease;
   --transition-normal: 0.3s ease;
   --transition-slow: 0.5s ease;
   --header-height: 64px;
-  --control-panel-height: 80px;
+  --control-panel-height:80px;
   --chat-width: 380px;
   --border-radius: 12px;
   --border-radius-sm: 8px;
@@ -45,7 +44,7 @@
 html, body {
   height: 100%;
   overflow: hidden;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
@@ -70,7 +69,7 @@ html, body {
 
 /* ========================================
    АНИМАЦИИ
-   ======================================== */
+======================================== */
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
@@ -79,7 +78,7 @@ html, body {
 
 @keyframes slideInRight {
   from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  to{ transform: translateX(0); }
 }
 
 @keyframes pulse {
@@ -129,7 +128,7 @@ html, body {
 }
 
 .header .logo:hover {
-  transform: translateX(4px);
+transform: translateX(4px);
 }
 
 .header .logo h3 {
@@ -137,7 +136,7 @@ html, body {
   font-weight: 600;
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-info));
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+ -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
@@ -171,7 +170,7 @@ html, body {
 
 /* ========================================
    ЛЕВАЯ ПАНЕЛЬ (ВИДЕО)
-   ======================================== */
+   ========================================*/
 
 .main__left {
   flex: 1;
@@ -185,106 +184,97 @@ html, body {
 
 /* ========================================
    ВИДЕО СЕТКА
-   ======================================== */
+   ========================================*/
 
-.video-grid {
-  flex: 1;
-  display: grid;
-  gap: 16px;
-  padding: 8px;
-  overflow-y: auto;
-  align-content: start;
-  animation: fadeIn 0.5s ease;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+#video-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 15px;
+  width: 100%;
+  height: 92vh;
+  box-sizing: border-box;
 }
 
-.video-grid:has(.video-container:only-child) {
-  grid-template-columns: 1fr;
-  place-items: center;
-}
-.video-grid:has(.video-container:nth-child(2):last-child) {
-  grid-template-columns: repeat(2, 1fr);
-}
-.video-grid:has(.video-container:nth-child(n+3):nth-child(-n+4)) {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-/* ========================================
-   ВИДЕО КОНТЕЙНЕРЫ
-   ======================================== */
-
+/* Video Container Base */
 .video-container {
   position: relative;
-  width: 100%;
-  aspect-ratio: 16/9;
-  background: var(--bg-tertiary);
-  border-radius: var(--border-radius-lg);
+  background: #1c1e20;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: var(--shadow-md);
-  transition: all var(--transition-normal);
-  animation: fadeIn 0.6s ease;
-  cursor: pointer;
-  border: 2px solid transparent;
-}
-
-.video-container:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--accent-primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  aspect-ratio: 16/9; /* ВАЖНО: сохраняем пропорции */
+  transition: all 0.3s ease;
 }
 
 .video-container video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  background: #000;
+  display: block;
 }
 
+/* Размеры в зависимости отколичества участников */
+.width-peer0 { width: 90% !important; max-width: 1200px; }
+.width-peer1 { width: 45% !important; }
+.width-peer2 { width: 45% !important; }
+.width-peer3 { width:30% !important; }
+.width-peer4 { width: 30% !important; }
+.width-peer5 { width: 30% !important; }
+.width-peer6 { width: 28% !important; }
+.width-peer7 { width: 28% !important; }
+.width-peer8 { width: 25% !important; }
+.width-peer { width: 23% !important; } /* Для 9+ участников */
+
+/* Placeholder (имя пользователя) */
 .video-placeholder {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 12px 16px;
-  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-  z-index: 10;
-}
-
-.tap-to-unmute {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
+  top: 50%;
+  left: 50%;
+ transform: translate(-50%, -50%);
+  font-size: 24px;
   font-weight: 600;
-  cursor: pointer;
-  z-index: 50;
-  backdrop-filter: blur(5px);
+  color: white;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px 20px;
+  border-radius: 8px;
+  display: none; /* По умолчанию скрыт */
 }
 
-.screen-share-container,
-.whiteboard-container {
-  grid-column: 1 / -1;
-  aspect-ratio: 16/9;
-  max-height: 70vh;
-  position: relative;
+/* Показываем placeholder только если видео выключено */
+.video-container.no-video .video-placeholder {
+  display: flex !important;
 }
 
-.screen-share-container {
-  border: 3px solid var(--accent-info);
+/* Адаптив для мобильных */
+@media (max-width: 768px) {
+  .width-peer0,
+  .width-peer1,
+  .width-peer2,
+  .width-peer3,
+  .width-peer4,
+  .width-peer5,
+  .width-peer6,
+  .width-peer7,
+  .width-peer8,
+  .width-peer {
+    width: 90% !important;
+  }
+  
+  #video-grid {
+    flex-direction: column;
+    height: auto;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
 }
 
-.whiteboard-container {
-  background: white !important;
-  border: 3px solid var(--accent-warning) !important;
-}
-
-/* ========================================
+/*========================================
    ПАНЕЛЬ УПРАВЛЕНИЯ
    ======================================== */
 
@@ -303,7 +293,7 @@ html, body {
 }
 
 /* ========================================
-   КНОПКИ УПРАВЛЕНИЯ
+   КНОПКИУПРАВЛЕНИЯ
    ======================================== */
 
 .control-button {
@@ -342,7 +332,7 @@ html, body {
   background: var(--bg-secondary);
   border-left: 1px solid var(--border-color);
   display: flex;
-  flex-direction: column;
+  flex-direction:column;
   animation: slideInRight 0.4s ease;
   height: 100%;
 }
@@ -355,7 +345,7 @@ html, body {
   gap: 16px;
 }
 
-.chat-panel h3 {
+.chat-panel h3{
   font-size: 18px;
   font-weight: 600;
   border-bottom: 1px solid var(--border-color);
@@ -367,7 +357,7 @@ html, body {
    ======================================== */
 
 .messages {
-  flex: 1;
+ flex: 1;
   background: var(--bg-primary);
   border-radius: var(--border-radius);
   padding: 16px;
@@ -379,7 +369,7 @@ html, body {
 }
 
 .message {
-  padding: 12px 16px;
+padding: 12px 16px;
   background: var(--bg-tertiary);
   border-radius: var(--border-radius);
   animation: fadeIn 0.3s ease;
@@ -388,7 +378,7 @@ html, body {
 
 .message:hover {
   background: var(--bg-hover);
-  border-left-color: var(--accent-primary);
+border-left-color: var(--accent-primary);
   transform: translateX(4px);
 }
 
@@ -426,7 +416,7 @@ html, body {
 
 .chat-send-button {
   width: 40px;
-  height: 40px;
+  height:40px;
   border: none;
   border-radius: 50%;
   background: var(--accent-primary);
@@ -439,8 +429,7 @@ html, body {
 }
 
 /* ========================================
-   КНОПКИ ЭМОДЗИ
-   ======================================== */
+   КНОПКИ ЭМОДЗИ======================================== */
 
 .emoji-buttons {
   display: flex;
@@ -453,7 +442,7 @@ html, body {
 
 .emoji-button {
   width: 40px;
-  height: 40px;
+height: 40px;
   border: none;
   border-radius: 50%;
   background: var(--bg-hover);
@@ -495,7 +484,7 @@ html, body {
   margin: 40px 0;
 }
 
-.btn {
+.btn{
   padding: 14px 28px;
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-info));
   color: white;
@@ -547,7 +536,7 @@ html, body {
    ======================================== */
 
 @media (max-width: 768px) {
-  :root {
+  :root{
     --header-height: 56px;
     --control-panel-height: 70px;
   }
@@ -556,7 +545,7 @@ html, body {
   .header .logo h3 { font-size: 18px; }
   .room-info { display: none; }
 
-  .main { flex-direction: column; }
+.main { flex-direction: column; }
   .main__left { padding: 8px; gap: 8px; }
 
   .main__right {
@@ -564,7 +553,7 @@ html, body {
     position: fixed;
     top: var(--header-height);
     right: -100%;
-    bottom: 0;
+   bottom: 0;
     z-index: 2000;
     transition: right var(--transition-normal);
     background: var(--bg-secondary);
@@ -606,9 +595,9 @@ html, body {
 
 @media (max-width: 480px) {
   .control-panel { padding: 8px; gap: 4px; }
-  .control-button { width: 40px; height: 40px; font-size: 14px; }
+ .control-button { width: 40px; height: 40px; font-size: 14px; }
   .control-panel::after { display: none; }
   .chat-panel { padding: 12px; }
-  .emoji-buttons { gap: 4px; padding: 8px; }
+  .emoji-buttons { gap: 4px; padding:8px; }
   .emoji-button { width: 36px; height: 36px; font-size: 18px; }
 }
