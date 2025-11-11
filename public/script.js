@@ -149,18 +149,32 @@ function setupSocketListeners(stream) {
     if (peerIdx !== -1) {
       const peer = peersRef[peerIdx];
       
+      // Уничтожаем peer
       if (peer.peer && typeof peer.peer.destroy === 'function') {
-        peer.peer.destroy();
+        try {
+          peer.peer.destroy();
+        } catch (err) {
+          console.warn('⚠️ Ошибка при уничтожении peer:', err);
+        }
       }
       
+      // Удаляем из массива
       peersRef.splice(peerIdx, 1);
+      
+      // Удаляем видео элемент
       removeParticipant(userId);
       
+      // Удаляем из userVideoAudio
       if (userName && userVideoAudio[userName]) {
         delete userVideoAudio[userName];
       }
       
+      // ✅ КРИТИЧНО: Обновляем сетку после удаления
       updateParticipantsGrid();
+      
+      console.log(`✅ Участник ${userName} полностью удален, осталось: ${peersRef.length}`);
+    } else {
+      console.warn(`⚠️ Peer ${userId} не найден в списке`);
     }
   });
 
@@ -205,9 +219,13 @@ function createPeer(userId, caller, stream) {
     config: {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' },
         { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
-      ]
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+      ],
+      iceCandidatePoolSize: 10
     }
   });
 
@@ -243,8 +261,36 @@ function createPeer(userId, caller, stream) {
     }
   });
 
+  // ✅ УЛУЧШЕННАЯ ОБРАБОТКА ОШИБОК
   peer.on('error', (err) => {
-    console.error('❌ Peer error:', err);
+    console.error('❌ Peer error:', err.code || err.message || err);
+    
+    // Не паникуем при "Connection failed" - это нормально при переподключении
+    if (err.code === 'ERR_CONNECTION_FAILURE' || err.message?.includes('Connection failed')) {
+      console.log('⚠️ Соединение не установлено, возможно пользователь отключился');
+      
+      // Удаляем peer через 5 секунд если так и не подключился
+      setTimeout(() => {
+        const peerIdx = peersRef.findIndex(p => p.peerID === userId);
+        if (peerIdx !== -1) {
+          const peerConnection = peersRef[peerIdx].peer._pc;
+          if (peerConnection && peerConnection.connectionState === 'failed') {
+            console.log('🗑️ Удаляем неудачное соединение:', userId);
+            peersRef.splice(peerIdx, 1);
+            removeParticipant(userId);
+          }
+        }
+      }, 5000);
+    }
+  });
+
+  // Отслеживаем состояние соединения
+  peer.on('connect', () => {
+    console.log('✅ Peer соединен:', userId);
+  });
+
+  peer.on('close', () => {
+    console.log('🔌 Peer закрыт:', userId);
   });
 
   return peer;
@@ -258,9 +304,13 @@ function addPeer(incomingSignal, callerId, stream) {
     config: {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' },
         { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
-      ]
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+      ],
+      iceCandidatePoolSize: 10
     }
   });
 
@@ -291,8 +341,33 @@ function addPeer(incomingSignal, callerId, stream) {
     }
   });
 
+  // ✅ УЛУЧШЕННАЯ ОБРАБОТКА ОШИБОК
   peer.on('error', (err) => {
-    console.error('❌ Peer error:', err);
+    console.error('❌ Peer error (incoming):', err.code || err.message || err);
+    
+    if (err.code === 'ERR_CONNECTION_FAILURE' || err.message?.includes('Connection failed')) {
+      console.log('⚠️ Входящее соединение не установлено');
+      
+      setTimeout(() => {
+        const peerIdx = peersRef.findIndex(p => p.peerID === callerId);
+        if (peerIdx !== -1) {
+          const peerConnection = peersRef[peerIdx].peer._pc;
+          if (peerConnection && peerConnection.connectionState === 'failed') {
+            console.log('🗑️ Удаляем неудачное входящее соединение:', callerId);
+            peersRef.splice(peerIdx, 1);
+            removeParticipant(callerId);
+          }
+        }
+      }, 5000);
+    }
+  });
+
+  peer.on('connect', () => {
+    console.log('✅ Входящий peer соединен:', callerId);
+  });
+
+  peer.on('close', () => {
+    console.log('🔌 Входящий peer закрыт:', callerId);
   });
 
   peer.signal(incomingSignal);
@@ -502,11 +577,12 @@ async function startScreenShare() {
     // Активируем зону демонстрации
     screenShareZone.classList.add('active');
     participantsGrid.classList.add('compact');
+    updateParticipantsGrid(); // ✅ Обновляем сетку
     
     // Обновляем кнопку
     const btn = document.getElementById("screenShareButton");
     if (btn) {
-      btn.style.background = "#ff4444";
+      btn.style.background = "rgba(238, 37, 96, 0.4)";
       const icon = btn.querySelector("i");
       if (icon) icon.className = "fa fa-stop-circle";
     }
@@ -514,26 +590,36 @@ async function startScreenShare() {
     // Отправляем поток всем участникам
     const screenTrack = stream.getVideoTracks()[0];
     
-    peersRef.forEach(({ peer }) => {
+    // ✅ БЕЗОПАСНАЯ ЗАМЕНА ТРЕКА
+    peersRef.forEach(({ peer, peerID }) => {
       if (peer && peer._pc) {
-        const sender = peer._pc.getSenders().find(s => s.track && s.track.kind === 'video');
-        if (sender) {
-          sender.replaceTrack(screenTrack).catch(err => {
-            console.error('Ошибка замены трека:', err);
-          });
+        try {
+          const sender = peer._pc.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender && sender.track) {
+            sender.replaceTrack(screenTrack)
+              .then(() => {
+                console.log('✅ Трек заменен для:', peerID);
+              })
+              .catch(err => {
+                console.warn('⚠️ Не удалось заменить трек для:', peerID, err);
+                // Не критичная ошибка, продолжаем работу
+              });
+          }
+        } catch (err) {
+          console.warn('⚠️ Ошибка при замене трека:', err);
         }
       }
     });
     
     // Обработка остановки
     screenTrack.onended = () => {
-      console.log('🖥️ Демонстрация остановлена');
+      console.log('🖥️ Демонстрация остановлена пользователем');
       stopScreenShare();
     };
     
     // Воспроизводим локально
     screenVideo.play().catch(err => {
-      console.error('Ошибка воспроизведения:', err);
+      console.warn('⚠️ Ошибка воспроизведения локального экрана:', err);
     });
     
     console.log('✅ Демонстрация началась');
@@ -542,6 +628,10 @@ async function startScreenShare() {
     console.error('❌ Ошибка демонстрации:', err);
     if (err.name === 'NotAllowedError') {
       showNotification('⚠️ Вы отклонили запрос на демонстрацию', 'error');
+    } else if (err.name === 'NotFoundError') {
+      showNotification('⚠️ Экран для демонстрации не найден', 'error');
+    } else {
+      showNotification('⚠️ Ошибка демонстрации экрана', 'error');
     }
   }
 }
@@ -563,18 +653,28 @@ function stopScreenShare() {
   // Деактивируем зону
   screenShareZone.classList.remove('active');
   participantsGrid.classList.remove('compact');
+  updateParticipantsGrid(); // ✅ Обновляем сетку
   
   // Возвращаем камеру
   if (userStream) {
     const videoTrack = userStream.getVideoTracks()[0];
     
-    peersRef.forEach(({ peer }) => {
+    // ✅ БЕЗОПАСНЫЙ ВОЗВРАТ ТРЕКОВ
+    peersRef.forEach(({ peer, peerID }) => {
       if (peer && peer._pc) {
-        const sender = peer._pc.getSenders().find(s => s.track && s.track.kind === 'video');
-        if (sender) {
-          sender.replaceTrack(videoTrack).catch(err => {
-            console.error('Ошибка возврата трека:', err);
-          });
+        try {
+          const sender = peer._pc.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender && videoTrack) {
+            sender.replaceTrack(videoTrack)
+              .then(() => {
+                console.log('✅ Камера возвращена для:', peerID);
+              })
+              .catch(err => {
+                console.warn('⚠️ Не удалось вернуть камеру для:', peerID, err);
+              });
+          }
+        } catch (err) {
+          console.warn('⚠️ Ошибка при возврате камеры:', err);
         }
       }
     });
@@ -743,12 +843,39 @@ document.querySelectorAll(".emoji-button").forEach(btn => {
 });
 
 // ==========================================
-// CLEANUP
+// CLEANUP - УЛУЧШЕННАЯ ОБРАБОТКА
 // ==========================================
 
-window.addEventListener("beforeunload", () => {
-  socket.emit('BE-leave-room', { roomId: ROOM_ID });
+// ✅ Heartbeat для проверки соединения (каждые 30 секунд)
+let heartbeatInterval = null;
+
+function startHeartbeat() {
+  heartbeatInterval = setInterval(() => {
+    if (socket && socket.connected) {
+      socket.emit('ping');
+    }
+  }, 30000);
+}
+
+socket.on('connect', () => {
+  console.log('✅ Socket подключен:', socket.id);
+  startHeartbeat();
+  initializeRoom();
+});
+
+socket.on('disconnect', () => {
+  console.log('🔌 Socket отключен');
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+});
+
+// ✅ Гарантированная отправка при закрытии вкладки
+window.addEventListener("beforeunload", (e) => {
+  console.log('👋 Закрытие вкладки - отправляем leave');
   
+  // Останавливаем все медиапотоки
   if (userStream) {
     userStream.getTracks().forEach(track => track.stop());
   }
@@ -757,11 +884,49 @@ window.addEventListener("beforeunload", () => {
     screenShareStream.getTracks().forEach(track => track.stop());
   }
   
+  // Уничтожаем все peer соединения
   peersRef.forEach(({ peer }) => {
     if (peer && typeof peer.destroy === 'function') {
       peer.destroy();
     }
   });
   
-  socket.disconnect();
+  // ✅ КРИТИЧНО: Используем sendBeacon для гарантированной отправки
+  if (navigator.sendBeacon) {
+    const data = JSON.stringify({
+      socketId: socket.id,
+      roomId: ROOM_ID,
+      userName: currentUser
+    });
+    
+    // sendBeacon гарантированно отправит даже при закрытии вкладки
+    navigator.sendBeacon(`${window.location.origin}/api/user-leave`, data);
+  }
+  
+  // Также пытаемся отправить через socket (может не успеть)
+  if (socket && socket.connected) {
+    socket.emit('BE-leave-room', { roomId: ROOM_ID });
+    socket.disconnect();
+  }
+});
+
+// ✅ Также обрабатываем видимость страницы
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === 'hidden') {
+    console.log('📄 Страница скрыта');
+    // Можно отправить heartbeat или логику паузы
+  } else {
+    console.log('📄 Страница видима');
+  }
+});
+
+// ✅ Обработка потери соединения
+socket.on('connect_error', (error) => {
+  console.error('❌ Ошибка подключения:', error);
+  showNotification('⚠️ Потеряно соединение с сервером', 'error');
+});
+
+socket.on('reconnect', (attemptNumber) => {
+  console.log('✅ Переподключено после', attemptNumber, 'попыток');
+  showNotification('✅ Соединение восстановлено', 'success');
 });

@@ -33,27 +33,85 @@ app.get("/room/:roomId", (req, res) => {
   res.render("room", { roomId: req.params.roomId });
 });
 
-// ✅ Socket.IO логика (ПРОСТАЯ И РАБОЧАЯ)
+// ==========================================
+// API ENDPOINT ДЛЯ SENDBEACON
+// ==========================================
+
+const bodyParser = require('body-parser');
+app.use(bodyParser.json());
+app.use(bodyParser.text({ type: '*/*' }));
+
+app.post('/api/user-leave', (req, res) => {
+  try {
+    let data;
+    
+    // sendBeacon отправляет как text, парсим вручную
+    if (typeof req.body === 'string') {
+      data = JSON.parse(req.body);
+    } else {
+      data = req.body;
+    }
+    
+    const { socketId, roomId, userName } = data;
+    
+    console.log(`📡 Получен beacon leave от ${userName} (${socketId})`);
+    
+    // Удаляем из socketList
+    if (socketList[socketId]) {
+      delete socketList[socketId];
+      
+      // Уведомляем всех в комнате
+      io.to(roomId).emit('FE-user-leave', { 
+        userId: socketId, 
+        userName 
+      });
+      
+      console.log(`✅ Пользователь ${userName} удален через beacon`);
+    }
+    
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('❌ Ошибка обработки beacon:', error);
+    res.status(500).send('Error');
+  }
+});
+
+// ==========================================
+// УЛУЧШЕННАЯ ОБРАБОТКА ОТКЛЮЧЕНИЙ
+// ==========================================
+
 io.on('connection', (socket) => {
   console.log(`🟢 Новый пользователь: ${socket.id}`);
+  
+  // Таймер для проверки "зомби" соединений
+  let disconnectTimer = null;
 
-  // Проверка существования имени
   socket.on('BE-check-user', ({ roomId, userName }) => {
     let error = false;
-    io.sockets.adapter.rooms.get(roomId)?.forEach((clientId) => {
-      if (socketList[clientId]?.userName === userName) {
-        error = true;
-      }
-    });
+    const room = io.sockets.adapter.rooms.get(roomId);
+    
+    if (room) {
+      room.forEach((clientId) => {
+        if (socketList[clientId]?.userName === userName) {
+          error = true;
+        }
+      });
+    }
+    
     socket.emit('FE-error-user-exist', { error });
   });
 
-  // Присоединение к комнате
   socket.on('BE-join-room', ({ roomId, userName }) => {
     console.log(`📥 ${userName} присоединился к ${roomId}`);
     
     socket.join(roomId);
-    socketList[socket.id] = { userName, video: true, audio: true };
+    socketList[socket.id] = { 
+      userName, 
+      video: false, // камера выключена по умолчанию
+      audio: true,
+      roomId,
+      joinedAt: Date.now()
+    };
 
     // Собираем всех пользователей комнаты
     const users = [];
@@ -64,17 +122,25 @@ io.on('connection', (socket) => {
         if (socketList[clientId]) {
           users.push({ 
             userId: clientId, 
-            info: socketList[clientId] 
+            info: {
+              userName: socketList[clientId].userName,
+              video: socketList[clientId].video,
+              audio: socketList[clientId].audio
+            }
           });
         }
       });
     }
 
-    // ВАЖНО: отправляем список ТОЛЬКО старым пользователям
     socket.broadcast.to(roomId).emit('FE-user-join', users);
+    
+    // ✅ Очищаем таймер отключения (если был)
+    if (disconnectTimer) {
+      clearTimeout(disconnectTimer);
+      disconnectTimer = null;
+    }
   });
 
-  // Передача WebRTC сигналов
   socket.on('BE-call-user', ({ userToCall, from, signal }) => {
     io.to(userToCall).emit('FE-receive-call', {
       signal,
@@ -90,41 +156,14 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Чат
   socket.on('BE-send-message', ({ roomId, msg, sender }) => {
     io.to(roomId).emit('FE-receive-message', { msg, sender });
   });
 
-  // Отключение
   socket.on('BE-leave-room', ({ roomId }) => {
-    const userName = socketList[socket.id]?.userName;
-    delete socketList[socket.id];
-    socket.broadcast.to(roomId).emit('FE-user-leave', { 
-      userId: socket.id, 
-      userName 
-    });
-    socket.leave(roomId);
+    handleUserLeave(socket, roomId);
   });
 
-  socket.on('disconnect', () => {
-    console.log(`🔴 Отключился: ${socket.id}`);
-    
-    const userName = socketList[socket.id]?.userName;
-    
-    // КРИТИЧНО: находим все комнаты, где был этот пользователь
-    const rooms = Array.from(socket.rooms).filter(room => room !== socket.id);
-    
-    rooms.forEach(roomId => {
-      socket.broadcast.to(roomId).emit('FE-user-leave', { 
-        userId: socket.id, 
-        userName 
-      });
-    });
-    
-    delete socketList[socket.id];
-  });
-
-  // Переключение камеры/микрофона
   socket.on('BE-toggle-camera-audio', ({ roomId, switchTarget }) => {
     if (socketList[socket.id]) {
       if (switchTarget === 'video') {
@@ -138,7 +177,83 @@ io.on('connection', (socket) => {
       });
     }
   });
+
+  // ✅ PING-PONG для проверки живых соединений
+  socket.on('ping', () => {
+    socket.emit('pong');
+  });
+
+  // ✅ КРИТИЧНО: Улучшенный disconnect
+  socket.on('disconnect', (reason) => {
+    console.log(`🔴 Отключился ${socket.id}, причина: ${reason}`);
+    
+    const userData = socketList[socket.id];
+    if (!userData) return;
+    
+    const { roomId, userName } = userData;
+    
+    // ✅ НЕМЕДЛЕННО уведомляем других участников
+    if (roomId) {
+      socket.broadcast.to(roomId).emit('FE-user-leave', { 
+        userId: socket.id, 
+        userName 
+      });
+      
+      socket.leave(roomId);
+    }
+    
+    // ✅ Удаляем из списка СРАЗУ
+    delete socketList[socket.id];
+    
+    console.log(`✅ Пользователь ${userName} (${socket.id}) полностью удален`);
+  });
+
+  // ✅ Обработка ошибок соединения
+  socket.on('error', (error) => {
+    console.error(`❌ Socket error для ${socket.id}:`, error);
+  });
 });
+
+// ✅ Вспомогательная функция для выхода
+function handleUserLeave(socket, roomId) {
+  const userData = socketList[socket.id];
+  if (!userData) return;
+  
+  const { userName } = userData;
+  
+  console.log(`👋 ${userName} покидает комнату ${roomId}`);
+  
+  socket.broadcast.to(roomId).emit('FE-user-leave', { 
+    userId: socket.id, 
+    userName 
+  });
+  
+  socket.leave(roomId);
+  delete socketList[socket.id];
+}
+
+// ✅ Периодическая очистка "зомби" соединений (каждую минуту)
+setInterval(() => {
+  const now = Date.now();
+  let cleaned = 0;
+  
+  for (const [socketId, data] of Object.entries(socketList)) {
+    // Если соединение старше 10 минут и нет активности
+    if (now - data.joinedAt > 10 * 60 * 1000) {
+      // Проверяем, существует ли socket
+      const socket = io.sockets.sockets.get(socketId);
+      if (!socket) {
+        console.log(`🧹 Очистка зомби-соединения: ${socketId}`);
+        delete socketList[socketId];
+        cleaned++;
+      }
+    }
+  }
+  
+  if (cleaned > 0) {
+    console.log(`🧹 Очищено зомби-соединений: ${cleaned}`);
+  }
+}, 60000);
 
 http.listen(PORT, () => {
   console.log(`
