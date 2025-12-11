@@ -166,6 +166,46 @@ body {
   color: #666;
 }
 
+/**
+ * Стили для чекбоксов
+ */
+.form-group input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+  accent-color: #4ea1d3; /* Цвет галочки для чекбокса */
+}
+
+/**
+ * Стили для полей ввода пароля
+ */
+.form-group input[type="password"] {
+  width: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  border: 2px solid #3a3a3a;
+  background: #2c2c2c;
+  color: #e0e0e0;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+  box-sizing: border-box;
+}
+
+/**
+ * Стили для группы с чекбоксом
+ */
+.form-group.checkbox-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px; /* Меньше отступа для чекбоксов */
+}
+
+.form-group.checkbox-group label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: normal; /* Убираем полужирность для чекбоксов */
+}
+
 /* ==========================================
    HEADER
    ========================================== */
