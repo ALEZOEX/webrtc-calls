@@ -223,10 +223,10 @@ io.on('connection', (socket) => {
     const sanitizedUserName = xss(validator.escape(userName));
 
     // Проверяем, не превышено ли максимальное количество участников в комнате
-    const room = io.sockets.adapter.rooms.get(roomId);
+    const roomForCheck = io.sockets.adapter.rooms.get(roomId);
     const maxParticipants = process.env.MAX_PARTICIPANTS_PER_ROOM || 16; // По умолчанию 16 участников
 
-    if (room && room.size >= maxParticipants) {
+    if (roomForCheck && roomForCheck.size >= maxParticipants) {
       socket.emit('FE-error', { error: `Комната достигла максимального количества участников: ${maxParticipants}` });
       return;
     }
@@ -234,8 +234,7 @@ io.on('connection', (socket) => {
     console.log(`📥 ${sanitizedUserName} (${socket.id}) присоединился к ${roomId}`);
 
     // Если комната еще не существует и был передан пароль, сохраняем его
-    const room = io.sockets.adapter.rooms.get(roomId);
-    if (!room && password) {
+    if (!roomForCheck && password) {
       roomPasswords.set(roomId, password);
       console.log(`🔒 Установлен пароль для новой комнаты: ${roomId}`);
     }
