@@ -3,16 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Video Conference</title>
-  
-  <!-- ✅ Favicon -->
+  <title>Видео Конференция</title>
+
+  <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎥</text></svg>">
-  
+
+  <!-- Стили приложения -->
   <link rel="stylesheet" href="/style.css" />
-  
+
+  <!-- Иконки Font Awesome -->
   <!-- ✅ Font Awesome с fallback -->
-  <link 
-    rel="stylesheet" 
+  <link
+    rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     crossorigin="anonymous"
     referrerpolicy="no-referrer"
@@ -20,25 +22,29 @@
   />
 </head>
 <body>
+  <!-- Заголовок с информацией о комнате -->
   <header class="header">
     <div class="logo">
       <h3>🎥 Video Conference</h3>
     </div>
     <div class="room-info">
       <i class="fas fa-door-open"></i>
-      <span>Room:</span>
+      <span>Комната:</span>
       <code id="room-code"><%= roomId.substring(0, 8) %>...</code>
     </div>
   </header>
 
+  <!-- Основной контент конференции -->
   <main class="main">
+    <!-- Левая панель с видео участников -->
     <section class="main__left">
-      <!-- ЗОНА ДЕМОНСТРАЦИИ ЭКРАНА -->
+      <!-- Зона для демонстрации экрана -->
       <div id="screen-share-zone" class="screen-share-zone"></div>
-      
-      <!-- ЗОНА УЧАСТНИКОВ -->
+
+      <!-- Сетка видео участников -->
       <div id="participants-grid" class="participants-grid"></div>
-      
+
+      <!-- Панель управления конференцией -->
       <div class="control-panel">
         <button id="stopVideo" class="control-button" title="Камера">
           <i class="fas fa-video-slash"></i>
@@ -52,6 +58,26 @@
         <button id="inviteButton" class="control-button" title="Пригласить">
           <i class="fas fa-user-plus"></i>
         </button>
+        <button id="raiseHandBtn" class="control-button" title="Поднять руку">
+          <i class="fas fa-hand-paper"></i>
+        </button>
+        <button id="moderationBtn" class="control-button" title="Модерация">
+          <i class="fas fa-user-shield"></i>
+        </button>
+        <button id="recordBtn" class="control-button" title="Запись конференции">
+          <i class="fas fa-record-vinyl"></i>
+        </button>
+        <div class="dropdown-container">
+          <button id="qualityBtn" class="control-button" title="Качество видео">
+            <i class="fas fa-video"></i>
+          </button>
+          <div id="qualityDropdown" class="dropdown-content" style="display: none; position: absolute; background: #2c2c2c; min-width: 160px; box-shadow: 0 8px 16px rgba(0,0,0,0.5); z-index: 1; border-radius: 6px; padding: 10px; bottom: 50px; left: -60px;">
+            <button id="qualityLow" class="quality-option">Низкое (320p)</button>
+            <button id="qualityMedium" class="quality-option">Среднее (480p)</button>
+            <button id="qualityHigh" class="quality-option">Высокое (720p)</button>
+            <button id="qualityUltra" class="quality-option">Сверхвысокое (1080p)</button>
+          </div>
+        </div>
         <button id="toggleChat" class="control-button" title="Чат">
           <i class="fas fa-comments"></i>
         </button>
@@ -61,6 +87,7 @@
       </div>
     </section>
 
+    <!-- Правая панель с чатом -->
     <section class="main__right" id="chat-panel">
       <div class="chat-panel">
         <h3>💬 Чат</h3>
@@ -85,18 +112,44 @@
     </section>
   </main>
 
-  <!-- ✅ Socket.IO с CDN -->
+  <!-- Скрипты для WebRTC функциональности -->
+  <!-- Socket.IO для реального времени взаимодействия -->
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  
-  <!-- Simple Peer -->
+
+  <!-- Simple Peer для WebRTC соединений -->
   <script src="https://unpkg.com/simple-peer@9.11.0/simplepeer.min.js"></script>
-  
+
+  <!-- Инициализация переменных для комнаты -->
   <script>
-    const ROOM_ID = "<%= roomId %>";
+    // Валидация и очистка roomId
+    const RAW_ROOM_ID = "<%= roomId %>";
+    // Проверяем, что roomId состоит только из допустимых символов
+    const roomId = /^[a-zA-Z0-9_-]+$/.test(RAW_ROOM_ID) ? RAW_ROOM_ID : 'invalid-room';
+
+    // Получаем параметры из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPrivate = urlParams.get('private') === 'true';
+    const password = urlParams.get('password');
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    console.log('🔧 Room ID:', ROOM_ID);
+
+    console.log('🔧 ID комнаты:', roomId);
+    console.log('🔒 Приватная комната:', isPrivate);
   </script>
-  
+
+  <!-- Основной скрипт приложения -->
   <script src="/script.js"></script>
+
+  <!-- Модальное окно модерации -->
+  <div id="moderationModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background-color: #1a1a1a; margin: 15% auto; padding: 20px; border: 1px solid #3a3a3a; border-radius: 8px; width: 60%; color: white;">
+      <h3>🔐 Модерация участников</h3>
+      <div id="participantsList" class="participants-list">
+        <!-- Список участников будет добавлен скриптом -->
+      </div>
+      <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+        <button id="closeModerationModal" class="btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
