@@ -195,18 +195,19 @@
       const isPrivate = document.getElementById('createPrivateRoom').checked;
       let password = '';
 
+      // Валидация имени пользователя
+      if (!userName || userName.length < 1 || userName.length > 50) {
+        alert('Имя пользователя должно быть от 1 до 50 символов');
+        return;
+      }
+
+      // Только если комната приватная, проверяем наличие пароля
       if (isPrivate) {
         password = document.getElementById('createRoomPassword').value.trim();
         if (!password) {
           alert('Для приватной комнаты требуется пароль');
           return;
         }
-      }
-
-      // Валидация имени пользователя
-      if (!userName || userName.length < 1 || userName.length > 50) {
-        alert('Имя пользователя должно быть от 1 до 50 символов');
-        return;
       }
 
       // Экранируем потенциально опасные символы
