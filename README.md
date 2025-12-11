@@ -56,6 +56,3 @@ npm start
 - WebRTC: Simple-peer для peer-to-peer соединений
 - UI: Адаптивный CSS с поддержкой мобильных устройств
 
-## Автор
-
-Qwen Code - Специалист по разработке ПО
